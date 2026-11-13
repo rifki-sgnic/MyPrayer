@@ -8,6 +8,7 @@ import androidx.annotation.RequiresPermission
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.Locale
 
 class LocationTracker(private val context: Context) {
@@ -16,10 +17,13 @@ class LocationTracker(private val context: Context) {
     @SuppressLint("MissingPermission")
     suspend fun getCurrentLocation(): Triple<Double, Double, String>? {
         return try {
-            val location = fusedClient.getCurrentLocation(
-                Priority.PRIORITY_BALANCED_POWER_ACCURACY,
-                null
-            ).await() ?: fusedClient.lastLocation.await()
+            // A fresh fix can hang without a signal; fall back to the last known one
+            val location = withTimeoutOrNull(15_000) {
+                fusedClient.getCurrentLocation(
+                    Priority.PRIORITY_BALANCED_POWER_ACCURACY,
+                    null
+                ).await()
+            } ?: fusedClient.lastLocation.await()
 
             if (location != null) {
                 val cityName = getCityName(location.latitude, location.longitude)

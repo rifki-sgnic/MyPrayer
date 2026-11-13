@@ -1,17 +1,14 @@
 package com.rfksgn.myprayer.presentation.settings
 
 import android.Manifest
-import android.app.AlarmManager
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.database.ContentObserver
 import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import android.os.PowerManager
 import android.provider.OpenableColumns
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -72,11 +69,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.rfksgn.myprayer.core.permission.checkBatteryUnrestricted
+import com.rfksgn.myprayer.core.permission.checkExactAlarmPermission
+import com.rfksgn.myprayer.core.permission.checkNotificationPermission
 import com.rfksgn.myprayer.data.local.CustomAdzanAudio
 import com.rfksgn.myprayer.domain.model.ReminderMode
 import kotlin.math.roundToInt
@@ -702,27 +701,6 @@ private fun PrayerModeSelectorRow(
             }
         }
     }
-}
-
-private fun checkNotificationPermission(context: Context): Boolean {
-    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.POST_NOTIFICATIONS
-        ) == PackageManager.PERMISSION_GRANTED
-    } else true
-}
-
-private fun checkExactAlarmPermission(context: Context): Boolean {
-    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        alarmManager.canScheduleExactAlarms()
-    } else true
-}
-
-private fun checkBatteryUnrestricted(context: Context): Boolean {
-    val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
-    return pm.isIgnoringBatteryOptimizations(context.packageName)
 }
 
 private fun openAppNotificationSettings(context: Context) {
