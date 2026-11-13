@@ -16,7 +16,9 @@ private val Context.dataStore by preferencesDataStore(name = "user_location_pref
 data class SavedLocation(
     val latitude: Double,
     val longitude: Double,
-    val cityName: String
+    val cityName: String,
+    // True until a GPS location has been saved; the schedule is then still Jakarta's
+    val isDefault: Boolean = false
 )
 
 data class CustomAdzanAudio(
@@ -50,7 +52,8 @@ class LocationPreferences(private val context: Context) {
         SavedLocation(
             latitude = prefs[LAT_KEY] ?: -6.1754,
             longitude = prefs[LNG_KEY] ?: 106.8272,
-            cityName = prefs[CITY_KEY] ?: "Jakarta Pusat (Default)"
+            cityName = prefs[CITY_KEY] ?: "Jakarta Pusat",
+            isDefault = prefs[LAT_KEY] == null
         )
     }
 

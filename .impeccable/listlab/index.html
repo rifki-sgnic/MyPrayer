@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MyPrayer List Lab</title>
+<!-- HTML replica of the current HomeScreen.kt (sky + astrolabe plate, card-less next prayer, schedule list)
+     for impeccable live mode. 1px = 1dp. The live target is section.schedule. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght,SOFT@9..144,400..800,0..100&family=Figtree:wght@400;500;600;700&family=Jost:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..24,400,0..1,0&display=block">
+<style>
+  :root {
+    --primary: #0F4C3A; --secondary: #C59B27; --secondary-container: #DDE6E3;
+    --background: #F6F4EF; --surface: #FFFFFF; --on-surface: #181816; --on-surface-variant: #5F5C55; --outline: #E2DDD2;
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    --primary: #34D399; --secondary: #EAB308; --secondary-container: #1C3329;
+    --background: #0A0F0D; --surface: #121A16; --on-surface: #F3F4F2; --on-surface-variant: #8A9991; --outline: #23332B;
+    color-scheme: dark;
+  }
+  :root[data-phase="subuh"]   { --sky: #E6DAE6; --body: #C59B27; --sun-x: 12%; --sun-up: 0; }
+  :root[data-phase="dzuhur"]  { --sky: #DCE7EA; --body: #C59B27; --sun-x: 50%; --sun-up: 1; }
+  :root[data-phase="ashar"]   { --sky: #EFE1C3; --body: #C59B27; --sun-x: 70%; --sun-up: .75; }
+  :root[data-phase="maghrib"] { --sky: #EFD3C3; --body: #C2702F; --sun-x: 90%; --sun-up: .2; }
+  :root[data-phase="isya"]    { --sky: #D8DDE6; --body: #8A93A6; --sun-x: 28%; --sun-up: .85; }
+  :root[data-theme="dark"][data-phase="subuh"]   { --sky: #2A2231; --body: #EAB308; }
+  :root[data-theme="dark"][data-phase="dzuhur"]  { --sky: #13262D; --body: #EAB308; }
+  :root[data-theme="dark"][data-phase="ashar"]   { --sky: #2A2413; --body: #EAB308; }
+  :root[data-theme="dark"][data-phase="maghrib"] { --sky: #321E16; --body: #E08A4A; }
+  :root[data-theme="dark"][data-phase="isya"]    { --sky: #111A2A; --body: #D9DEE6; }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; gap: 12px; padding: 20px 0;
+         background: #8b8f8c; font-family: Roboto, system-ui, sans-serif; }
+  .lab-controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: 420px; font: 500 13px Roboto, sans-serif; }
+  .lab-controls button { font: inherit; padding: 6px 10px; border-radius: 8px; border: 1px solid #0003; background: #fff; cursor: pointer; }
+  .lab-controls button[aria-pressed="true"] { background: #0F4C3A; color: #fff; }
+  .ms { font-family: 'Material Symbols Outlined'; font-weight: normal; font-style: normal; line-height: 1; display: inline-block;
+        font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20; }
+  .phone { width: 360px; height: 780px; border-radius: 28px; overflow: hidden; box-shadow: 0 20px 60px #0005; display: flex; flex-direction: column; }
+  .screen { flex: 1; min-height: 0; overflow: auto; position: relative; isolation: isolate; color: var(--on-surface);
+    background: linear-gradient(180deg, var(--sky) 0, var(--background) 300px) 0 0 / 100% 600px no-repeat, var(--background); }
+  .screen::before { content: ""; position: absolute; z-index: -1; width: 820px; height: 820px; left: -110px; top: -330px; border-radius: 50%;
+    --ln: color-mix(in srgb, var(--body) 25%, transparent);
+    background: repeating-radial-gradient(circle, transparent 0 27px, var(--ln) 27px 28px), repeating-conic-gradient(from 0deg, var(--ln) 0 .2deg, transparent .2deg 15deg);
+    -webkit-mask: radial-gradient(circle, transparent 0 7%, #000 8% 38%, transparent 62%); mask: radial-gradient(circle, transparent 0 7%, #000 8% 38%, transparent 62%); }
+  .screen::after { content: ""; position: absolute; z-index: -1; width: 12px; height: 12px; border-radius: 50%; background: var(--body);
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--body) 18%, transparent), 0 0 0 11px color-mix(in srgb, var(--body) 8%, transparent);
+    left: var(--sun-x); top: calc(160px - var(--sun-up) * 32px); transform: translate(-50%, -50%); }
+  .statusbar { height: 24px; }
+  .content { display: flex; flex-direction: column; gap: 20px; padding: 16px 20px; }
+  .header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+  .hijri { font: 700 11px Roboto; letter-spacing: 1.4px; color: var(--secondary); text-transform: uppercase; }
+  .date { font: 500 14px/20px Roboto; color: var(--on-surface-variant); margin-top: 2px; }
+  .loc { display: inline-flex; align-items: center; gap: 4px; min-height: 48px; font: 500 12px Roboto; }
+  .loc .ms { font-size: 15px; color: var(--primary); }
+  .next { padding: 24px 0 32px; display: flex; flex-direction: column; gap: 10px; }
+  .next-name { font: 700 80px/.92 Roboto; letter-spacing: -.03em; }
+  .sub { font: 500 15px/20px Roboto; color: var(--on-surface-variant); font-variant-numeric: tabular-nums; }
+  .sub .t { font-weight: 700; color: var(--primary); } .sub .c { font-weight: 600; color: var(--on-surface); }
+  .lower { display: flex; flex-direction: column; gap: 20px; margin-top: -20px; }
+  .status { display: flex; align-items: center; min-height: 48px; font: 600 12px Roboto; color: var(--on-surface-variant);
+    border-top: 1px solid color-mix(in srgb, var(--outline) 60%, transparent); }
+  .status .left { flex: 1; display: flex; align-items: center; gap: 8px; } .status .ms { font-size: 16px; color: var(--primary); }
+
+  /* ── Incumbent schedule list: six cards ── */
+  .schedule { display: flex; flex-direction: column; gap: 12px; }
+  .schedule .sched-head { display: flex; justify-content: space-between; align-items: baseline; padding: 0 4px; font: 700 11px Roboto; letter-spacing: 1.2px; color: var(--on-surface-variant); }
+  .schedule .sched-head .hint { font: 500 11px Roboto; letter-spacing: .5px; }
+  .schedule .rows { display: flex; flex-direction: column; gap: 8px; }
+  .schedule .row { display: flex; align-items: center; min-height: 56px; padding: 4px 4px 4px 18px; background: var(--surface);
+    border: 1px solid var(--outline); border-radius: 16px; font: 500 16px Roboto; letter-spacing: .5px; }
+  .schedule .row .n { flex: 1; display: flex; align-items: center; gap: 10px; }
+  .schedule .row .t { font: 600 17px Roboto; font-variant-numeric: tabular-nums; }
+  .schedule .mode { width: 48px; height: 48px; display: grid; place-items: center; background: none; border: 0; border-radius: 50%; cursor: pointer; color: var(--secondary); }
+  .schedule .mode .ms { font-size: 18px; }
+  .schedule .row[data-mode="silent"] .mode { color: color-mix(in srgb, var(--on-surface-variant) 60%, transparent); }
+  .schedule .sun { width: 48px; height: 48px; display: grid; place-items: center; color: color-mix(in srgb, var(--on-surface-variant) 60%, transparent); }
+  .schedule .sun .ms { font-size: 18px; }
+  .schedule .badge { display: none; padding: 3px 8px; border-radius: 6px; background: var(--secondary-container); color: var(--primary); font: 700 9px Roboto; letter-spacing: .8px; }
+  .schedule .row.passed { background: var(--background); border-color: color-mix(in srgb, var(--outline) 50%, transparent); }
+  .schedule .row.passed .n, .schedule .row.passed .t { opacity: .62; }
+  .schedule .row.is-next { border: 1.5px solid var(--primary); padding-block: 8px; box-shadow: 0 1px 3px #0002; font-weight: 700; }
+  .schedule .row.is-next .t, .schedule .row.is-next .mode { color: var(--primary); font-weight: 700; }
+  .schedule .row.is-next .badge { display: inline-block; }
+
+  .navbar { height: 80px; flex: none; display: flex; background: var(--surface); border-top: 1px solid var(--outline); }
+  .navbar div { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font: 500 12px Roboto; color: var(--on-surface-variant); }
+  .navbar div:first-child { color: var(--primary); font-weight: 700; }
+</style>
+</head>
+<body>
+  <div class="lab-controls" id="phases">
+    <button type="button" data-p="subuh">Subuh</button>
+    <button type="button" data-p="dzuhur">Dzuhur</button>
+    <button type="button" data-p="ashar">Ashar</button>
+    <button type="button" data-p="maghrib">Maghrib</button>
+    <button type="button" data-p="isya" aria-pressed="true">Isya</button>
+    <button type="button" id="toggle-theme">Light / Dark</button>
+  </div>
+
+  <div class="phone">
+    <div class="screen">
+      <div class="statusbar"></div>
+      <!-- impeccable-variants-start 73b69010 -->
+      <div data-impeccable-variants="73b69010" data-impeccable-variant-count="3" style="display: contents">
+        <!-- Original -->
+        <div data-impeccable-variant="original">
+          <div class="content">
+            <div class="header">
+              <div><div class="hijri">1 Jumadil Akhir 1448 H</div><div class="date">Rabu, 11 November 2026</div></div>
+              <div class="loc"><span class="ms">location_on</span>Kota Bandung</div>
+            </div>
+            <div class="next">
+              <div class="next-name">Isya</div>
+              <div class="sub">pukul <span class="t next-time">19:12</span> WIB&nbsp;&nbsp;·&nbsp;&nbsp;<span class="c">00:24:30</span> lagi</div>
+            </div>
+            <div class="lower">
+                <div class="status"><div class="left"><span class="ms">check_circle</span>Pengingat aktif · 5 waktu</div><div>Kiblat 295°</div></div>
+
+                <section class="schedule" aria-label="Jadwal waktu sholat">
+                          <div class="sched-head"><span>JADWAL WAKTU SHOLAT</span><span class="hint">Ketuk ikon untuk ubah mode</span></div>
+                          <div class="rows">
+                            <div class="row" data-prayer="subuh" data-mode="adzan"><span class="n">Subuh<span class="badge">BERIKUTNYA</span></span><span class="t">04:01</span><button type="button" class="mode" aria-label="Pengingat Subuh: Suara Adzan. Ketuk untuk mengganti."><span class="ms">notifications_active</span></button></div>
+                            <div class="row" data-prayer="terbit"><span class="n">Terbit<span class="badge">BERIKUTNYA</span></span><span class="t">05:18</span><span class="sun" aria-label="Waktu terbit, tanpa adzan"><span class="ms">wb_sunny</span></span></div>
+                            <div class="row" data-prayer="dzuhur" data-mode="adzan"><span class="n">Dzuhur<span class="badge">BERIKUTNYA</span></span><span class="t">11:38</span><button type="button" class="mode" aria-label="Pengingat Dzuhur: Suara Adzan. Ketuk untuk mengganti."><span class="ms">notifications_active</span></button></div>
+                            <div class="row" data-prayer="ashar" data-mode="vibrate"><span class="n">Ashar<span class="badge">BERIKUTNYA</span></span><span class="t">14:57</span><button type="button" class="mode" aria-label="Pengingat Ashar: Getar Saja. Ketuk untuk mengganti."><span class="ms">vibration</span></button></div>
+                            <div class="row" data-prayer="maghrib" data-mode="adzan"><span class="n">Maghrib<span class="badge">BERIKUTNYA</span></span><span class="t">17:52</span><button type="button" class="mode" aria-label="Pengingat Maghrib: Suara Adzan. Ketuk untuk mengganti."><span class="ms">notifications_active</span></button></div>
+                            <div class="row" data-prayer="isya" data-mode="adzan"><span class="n">Isya<span class="badge">BERIKUTNYA</span></span><span class="t">19:12</span><button type="button" class="mode" aria-label="Pengingat Isya: Suara Adzan. Ketuk untuk mengganti."><span class="ms">notifications_active</span></button></div>
+                          </div>
+                        </section>
+                </div>
+          </div>
+        </div>
+        <!-- Variants: insert below this line -->
+<style data-impeccable-css="73b69010">
+  /* V1 · Plus Jakarta Sans: a geometric-humanist sans drawn for Jakarta's city identity by an Indonesian foundry; one family, weight does the work */
+  @scope ([data-impeccable-variant="1"]) {
+    :scope *:not(.ms) { font-family: var(--ff-body) !important; }
+    :scope .next-name { font-family: var(--ff-display) !important; font-size: calc(80px * var(--p-scale, 1)); }
+    :scope .t, :scope .sub, :scope .c { font-variant-numeric: tabular-nums; }
+    :scope > .content { --ff-body: "Plus Jakarta Sans", Roboto, sans-serif; --ff-display: "Plus Jakarta Sans", Roboto, sans-serif; }
+    :scope .next-name { font-weight: 800; letter-spacing: -.045em; line-height: .9; }
+    :scope[data-p-weight="bold"] .next-name { font-weight: 700; letter-spacing: -.035em; }
+    :scope .hijri { letter-spacing: 1.6px; }
+    :scope .schedule .row { letter-spacing: 0; }
+    :scope .schedule .row .t { font-weight: 700; }
+  }
+
+  /* V2 · Fraunces + Figtree: a soft old-style serif for the prayer names, a quiet sans for everything you scan */
+  @scope ([data-impeccable-variant="2"]) {
+    :scope *:not(.ms) { font-family: var(--ff-body) !important; }
+    :scope .next-name { font-family: var(--ff-display) !important; font-size: calc(80px * var(--p-scale, 1)); }
+    :scope .t, :scope .sub, :scope .c { font-variant-numeric: tabular-nums; }
+    :scope > .content { --ff-body: Figtree, Roboto, sans-serif; --ff-display: Fraunces, Georgia, serif; }
+    :scope .next-name { font-weight: 600; letter-spacing: -.02em; line-height: .95; font-variation-settings: "opsz" 144, "SOFT" 100; }
+    :scope[data-p-soft="sharp"] .next-name, :scope[data-p-soft="sharp"] .schedule .row .n { font-variation-settings: "opsz" 144, "SOFT" 0; }
+    :scope .schedule .row .n { font-family: var(--ff-display) !important; font-size: 18px; font-weight: 500; letter-spacing: 0; font-variation-settings: "opsz" 24, "SOFT" 100; }
+    :scope .schedule .row.is-next .n { font-weight: 700; }
+    :scope .schedule .row .badge { font-family: var(--ff-body) !important; }
+    :scope .schedule .row .t { font-weight: 600; font-size: 17px; }
+  }
+
+  /* V3 · Jost: a Futura-like geometric sans; circles and straight strokes, set in capitals for the name like an instrument's engraving */
+  @scope ([data-impeccable-variant="3"]) {
+    :scope *:not(.ms) { font-family: var(--ff-body) !important; }
+    :scope .next-name { font-family: var(--ff-display) !important; font-size: calc(80px * var(--p-scale, 1)); }
+    :scope .t, :scope .sub, :scope .c { font-variant-numeric: tabular-nums; }
+    :scope > .content { --ff-body: Jost, Roboto, sans-serif; --ff-display: Jost, Roboto, sans-serif; }
+    :scope .next-name { font-weight: 600; text-transform: uppercase; letter-spacing: .02em; line-height: .9; font-size: calc(72px * var(--p-scale, 1)); }
+    :scope[data-p-case="title"] .next-name { text-transform: none; letter-spacing: -.02em; font-size: calc(84px * var(--p-scale, 1)); }
+    :scope .sub { font-size: 16px; }
+    :scope .schedule .row { font-size: 17px; letter-spacing: .2px; }
+    :scope .schedule .row .t { font-size: 18px; font-weight: 500; }
+    :scope .schedule .row.is-next .t { font-weight: 700; }
+  }
+</style>
+<div data-impeccable-variant="1" data-impeccable-params='[{"id":"scale","kind":"range","min":0.85,"max":1.3,"step":0.05,"default":1,"label":"Scale"},{"id":"weight","kind":"steps","default":"extra","label":"Name weight","options":[{"value":"extra","label":"ExtraBold"},{"value":"bold","label":"Bold"}]}]'>
+<div class="content">
+            <div class="header">
+              <div><div class="hijri">1 Jumadil Akhir 1448 H</div><div class="date">Rabu, 11 November 2026</div></div>
+              <div class="loc"><span class="ms">location_on</span>Kota Bandung</div>
+            </div>
+            <div class="next">
+              <div class="next-name">Isya</div>
+              <div class="sub">pukul <span class="t next-time">19:12</span> WIB&nbsp;&nbsp;·&nbsp;&nbsp;<span class="c">00:24:30</span> lagi</div>
+            </div>
+            <div class="lower">
+                <div class="status"><div class="left"><span class="ms">check_circle</span>Pengingat aktif · 5 waktu</div><div>Kiblat 295°</div></div>
+
+                <section class="schedule" aria-label="Jadwal waktu sholat">
+                          <div class="sched-head"><span>JADWAL WAKTU SHOLAT</span><span class="hint">Ketuk ikon untuk ubah mode</span></div>
+                          <div class="rows">
+                            <div class="row" data-prayer="subuh" data-mode="adzan"><span class="n">Subuh<span class="badge">BERIKUTNYA</span></span><span class="t">04:01</span><button type="button" class="mode" aria-label="Pengingat Subuh: Suara Adzan. Ketuk untuk mengganti."><span class="ms">notifications_active</span></button></div>
+                            <div class="row" data-prayer="terbit"><span class="n">Terbit<span class="badge">BERIKUTNYA</span></span><span class="t">05:18</span><span class="sun" aria-label="Waktu terbit, tanpa adzan"><span class="ms">wb_sunny</span></span></div>
+                            <div class="row" data-prayer="dzuhur" data-mode="adzan"><span class="n">Dzuhur<span class="badge">BERIKUTNYA</span></span><span class="t">11:38</span><button type="button" class="mode" aria-label="Pengingat Dzuhur: Suara Adzan. Ketuk untuk mengganti."><span class="ms">notifications_active</span></button></div>
+                            <div class="row" data-prayer="ashar" data-mode="vibrate"><span class="n">Ashar<span class="badge">BERIKUTNYA</span></span><span class="t">14:57</span><button type="button" class="mode" aria-label="Pengingat Ashar: Getar Saja. Ketuk untuk mengganti."><span class="ms">vibration</span></button></div>
+                            <div class="row" data-prayer="maghrib" data-mode="adzan"><span class="n">Maghrib<span class="badge">BERIKUTNYA</span></span><span class="t">17:52</span><button type="button" class="mode" aria-label="Pengingat Maghrib: Suara Adzan. Ketuk untuk mengganti."><span class="ms">notifications_active</span></button></div>
+                            <div class="row" data-prayer="isya" data-mode="adzan"><span class="n">Isya<span class="badge">BERIKUTNYA</span></span><span class="t">19:12</span><button type="button" class="mode" aria-label="Pengingat Isya: Suara Adzan. Ketuk untuk mengganti."><span class="ms">notifications_active</span></button></div>
+                          </div>
+                        </section>
+                </div>
+          </div>
+</div>
+<div data-impeccable-variant="2" style="display: none" data-impeccable-params='[{"id":"scale","kind":"range","min":0.85,"max":1.3,"step":0.05,"default":1,"label":"Scale"},{"id":"soft","kind":"steps","default":"soft","label":"Serif","options":[{"value":"soft","label":"Soft"},{"value":"sharp","label":"Sharp"}]}]'>
+<div class="content">
+            <div class="header">
+              <div><div class="hijri">1 Jumadil Akhir 1448 H</div><div class="date">Rabu, 11 November 2026</div></div>
+              <div class="loc"><span class="ms">location_on</span>Kota Bandung</div>
+            </div>
+            <div class="next">
+              <div class="next-name">Isya</div>
+              <div class="sub">pukul <span class="t next-time">19:12</span> WIB&nbsp;&nbsp;·&nbsp;&nbsp;<span class="c">00:24:30</span> lagi</div>
+            </div>
+            <div class="lower">
+                <div class="status"><div class="left"><span class="ms">check_circle</span>Pengingat aktif · 5 waktu</div><div>Kiblat 295°</div></div>
+
+                <section class="schedule" aria-label="Jadwal waktu sholat">
+                          <div class="sched-head"><span>JADWAL WAKTU SHOLAT</span><span class="hint">Ketuk ikon untuk ubah mode</span></div>
+                          <div class="rows">
+                            <div class="row" data-prayer="subuh" data-mode="adzan"><span class="n">Subuh<span class="badge">BERIKUTNYA</span></span><span class="t">04:01</span><button type="button" class="mode" aria-label="Pengingat Subuh: Suara Adzan. Ketuk untuk mengganti."><span class="ms">notifications_active</span></button></div>
+                            <div class="row" data-prayer="terbit"><span class="n">Terbit<span class="badge">BERIKUTNYA</span></span><span class="t">05:18</span><span class="sun" aria-label="Waktu terbit, tanpa adzan"><span class="ms">wb_sunny</span></span></div>
+                            <div class="row" data-prayer="dzuhur" data-mode="adzan"><span class="n">Dzuhur<span class="badge">BERIKUTNYA</span></span><span class="t">11:38</span><button type="button" class="mode" aria-label="Pengingat Dzuhur: Suara Adzan. Ketuk untuk mengganti."><span class="ms">notifications_active</span></button></div>
+                            <div class="row" data-prayer="ashar" data-mode="vibrate"><span class="n">Ashar<span class="badge">BERIKUTNYA</span></span><span class="t">14:57</span><button type="button" class="mode" aria-label="Pengingat Ashar: Getar Saja. Ketuk untuk mengganti."><span class="ms">vibration</span></button></div>
+                            <div class="row" data-prayer="maghrib" data-mode="adzan"><span class="n">Maghrib<span class="badge">BERIKUTNYA</span></span><span class="t">17:52</span><button type="button" class="mode" aria-label="Pengingat Maghrib: Suara Adzan. Ketuk untuk mengganti."><span class="ms">notifications_active</span></button></div>
+                            <div class="row" data-prayer="isya" data-mode="adzan"><span class="n">Isya<span class="badge">BERIKUTNYA</span></span><span class="t">19:12</span><button type="button" class="mode" aria-label="Pengingat Isya: Suara Adzan. Ketuk untuk mengganti."><span class="ms">notifications_active</span></button></div>
+                          </div>
+                        </section>
+                </div>
+          </div>
+</div>
+<div data-impeccable-variant="3" style="display: none" data-impeccable-params='[{"id":"scale","kind":"range","min":0.85,"max":1.3,"step":0.05,"default":1,"label":"Scale"},{"id":"case","kind":"steps","default":"upper","label":"Name case","options":[{"value":"upper","label":"CAPS"},{"value":"title","label":"Title"}]}]'>
+<div class="content">
+            <div class="header">
+              <div><div class="hijri">1 Jumadil Akhir 1448 H</div><div class="date">Rabu, 11 November 2026</div></div>
+              <div class="loc"><span class="ms">location_on</span>Kota Bandung</div>
+            </div>
+            <div class="next">
+              <div class="next-name">Isya</div>
+              <div class="sub">pukul <span class="t next-time">19:12</span> WIB&nbsp;&nbsp;·&nbsp;&nbsp;<span class="c">00:24:30</span> lagi</div>
+            </div>
+            <div class="lower">
+                <div class="status"><div class="left"><span class="ms">check_circle</span>Pengingat aktif · 5 waktu</div><div>Kiblat 295°</div></div>
+
+                <section class="schedule" aria-label="Jadwal waktu sholat">
+                          <div class="sched-head"><span>JADWAL WAKTU SHOLAT</span><span class="hint">Ketuk ikon untuk ubah mode</span></div>
+                          <div class="rows">
+                            <div class="row" data-prayer="subuh" data-mode="adzan"><span class="n">Subuh<span class="badge">BERIKUTNYA</span></span><span class="t">04:01</span><button type="button" class="mode" aria-label="Pengingat Subuh: Suara Adzan. Ketuk untuk mengganti."><span class="ms">notifications_active</span></button></div>
+                            <div class="row" data-prayer="terbit"><span class="n">Terbit<span class="badge">BERIKUTNYA</span></span><span class="t">05:18</span><span class="sun" aria-label="Waktu terbit, tanpa adzan"><span class="ms">wb_sunny</span></span></div>
+                            <div class="row" data-prayer="dzuhur" data-mode="adzan"><span class="n">Dzuhur<span class="badge">BERIKUTNYA</span></span><span class="t">11:38</span><button type="button" class="mode" aria-label="Pengingat Dzuhur: Suara Adzan. Ketuk untuk mengganti."><span class="ms">notifications_active</span></button></div>
+                            <div class="row" data-prayer="ashar" data-mode="vibrate"><span class="n">Ashar<span class="badge">BERIKUTNYA</span></span><span class="t">14:57</span><button type="button" class="mode" aria-label="Pengingat Ashar: Getar Saja. Ketuk untuk mengganti."><span class="ms">vibration</span></button></div>
+                            <div class="row" data-prayer="maghrib" data-mode="adzan"><span class="n">Maghrib<span class="badge">BERIKUTNYA</span></span><span class="t">17:52</span><button type="button" class="mode" aria-label="Pengingat Maghrib: Suara Adzan. Ketuk untuk mengganti."><span class="ms">notifications_active</span></button></div>
+                            <div class="row" data-prayer="isya" data-mode="adzan"><span class="n">Isya<span class="badge">BERIKUTNYA</span></span><span class="t">19:12</span><button type="button" class="mode" aria-label="Pengingat Isya: Suara Adzan. Ketuk untuk mengganti."><span class="ms">notifications_active</span></button></div>
+                          </div>
+                        </section>
+                </div>
+          </div>
+</div>
+      </div>
+      <!-- impeccable-variants-end 73b69010 -->
+    </div>
+    <div class="navbar"><div><span class="ms">calendar_month</span>Jadwal</div><div><span class="ms">explore</span>Kiblat</div><div><span class="ms">settings</span>Setelan</div></div>
+  </div>
+
+<script>
+  const root = document.documentElement;
+  const order = ['subuh', 'terbit', 'dzuhur', 'ashar', 'maghrib', 'isya'];
+  const info = { subuh: ['Subuh', '04:01'], dzuhur: ['Dzuhur', '11:38'], ashar: ['Ashar', '14:57'], maghrib: ['Maghrib', '17:52'], isya: ['Isya', '19:12'] };
+  const modes = { adzan: ['notifications_active', 'Suara Adzan'], vibrate: ['vibration', 'Getar Saja'], silent: ['notifications_off', 'Nonaktif'] };
+  const next = { adzan: 'vibrate', vibrate: 'silent', silent: 'adzan' };
+  // Applies the phase to the original and every variant copy; writes only on change so the observer doesn't loop
+  function setPhase(p) {
+    root.dataset.phase = p;
+    document.querySelectorAll('#phases button[data-p]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.p === p)));
+    document.querySelectorAll('.next-name').forEach(e => { if (e.textContent !== info[p][0]) e.textContent = info[p][0]; });
+    document.querySelectorAll('.next-time').forEach(e => { if (e.textContent !== info[p][1]) e.textContent = info[p][1]; });
+    const ni = order.indexOf(p);
+    document.querySelectorAll('[data-prayer]').forEach(r => {
+      const i = order.indexOf(r.dataset.prayer);
+      r.classList.toggle('is-next', i === ni);
+      r.classList.toggle('passed', i < ni);
+    });
+  }
+  document.getElementById('phases').addEventListener('click', e => { const b = e.target.closest('button[data-p]'); if (b) setPhase(b.dataset.p); });
+  document.getElementById('toggle-theme').onclick = () => root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+  // Reminder mode cycles adzan -> getar -> nonaktif on any copy
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('.mode'); if (!btn) return;
+    const row = btn.closest('[data-mode]'); const m = next[row.dataset.mode]; row.dataset.mode = m;
+    btn.querySelector('.ms').textContent = modes[m][0];
+    btn.setAttribute('aria-label', 'Pengingat ' + row.dataset.prayer + ': ' + modes[m][1] + '. Ketuk untuk mengganti.');
+  });
+  setPhase('isya');
+  new MutationObserver(() => { clearTimeout(window.__t); window.__t = setTimeout(() => setPhase(root.dataset.phase), 50); })
+    .observe(document.querySelector('.phone'), { childList: true, subtree: true });
+</script>
+<!-- impeccable-live-start -->
+<script src="http://localhost:8400/live.js?token=4e38b896-41ae-4d69-a3e8-6b989247682b"></script>
+<!-- impeccable-live-end -->
+</body>
+</html>

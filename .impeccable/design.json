@@ -1,0 +1,640 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-11T11:37:01+00:00",
+  "title": "Design System: MyPrayer",
+  "extensions": {
+    "colorMeta": {
+      "cypress-primary": {
+        "role": "primary",
+        "displayName": "Deep Cypress",
+        "canonical": "oklch(37.4% 0.068 168)",
+        "tonalRamp": [
+          "#020F09",
+          "#102B22",
+          "#254B3D",
+          "#3B6D5B",
+          "#5C8F7C",
+          "#87B09F",
+          "#B2D2C5",
+          "#DFF4EB"
+        ]
+      },
+      "cypress-container": {
+        "role": "primary",
+        "displayName": "Cypress Night",
+        "canonical": "oklch(31.1% 0.045 172)",
+        "tonalRamp": [
+          "#040E0A",
+          "#182924",
+          "#2F4840",
+          "#49695F",
+          "#698B80",
+          "#91ACA3",
+          "#B9CFC7",
+          "#E4F2ED"
+        ]
+      },
+      "on-cypress-container": {
+        "role": "primary",
+        "displayName": "On Cypress Night",
+        "canonical": "oklch(95.9% 0.010 87)",
+        "tonalRamp": [
+          "#0C0B09",
+          "#262522",
+          "#44423E",
+          "#63615C",
+          "#84827C",
+          "#A7A5A0",
+          "#CAC9C5",
+          "#EFEEEC"
+        ]
+      },
+      "cypress-tint": {
+        "role": "primary",
+        "displayName": "Cypress Mist",
+        "canonical": "oklch(91.7% 0.010 174)",
+        "tonalRamp": [
+          "#0A0C0B",
+          "#222625",
+          "#3E4342",
+          "#5C6361",
+          "#7D8482",
+          "#A0A7A5",
+          "#C5CAC9",
+          "#ECEFEE"
+        ]
+      },
+      "jade-primary": {
+        "role": "primary",
+        "displayName": "Mint Jade",
+        "canonical": "oklch(77.3% 0.153 163)",
+        "tonalRamp": [
+          "#001205",
+          "#003119",
+          "#005330",
+          "#00784A",
+          "#009B6A",
+          "#59BB91",
+          "#95DBBA",
+          "#CCFBE4"
+        ]
+      },
+      "jade-container": {
+        "role": "primary",
+        "displayName": "Jade Depth",
+        "canonical": "oklch(26.3% 0.033 169)",
+        "tonalRamp": [
+          "#060D0A",
+          "#1C2823",
+          "#354640",
+          "#51675E",
+          "#71887F",
+          "#97AAA2",
+          "#BECDC7",
+          "#E7F1ED"
+        ]
+      },
+      "jade-mist": {
+        "role": "primary",
+        "displayName": "Jade Mist",
+        "canonical": "oklch(29.8% 0.035 165)",
+        "tonalRamp": [
+          "#060D0A",
+          "#1C2823",
+          "#36463F",
+          "#51675D",
+          "#71897E",
+          "#97AAA1",
+          "#BECDC6",
+          "#E7F1EC"
+        ]
+      },
+      "on-jade": {
+        "role": "primary",
+        "displayName": "On Mint Jade",
+        "canonical": "oklch(26.6% 0.063 153)",
+        "tonalRamp": [
+          "#040E07",
+          "#172A1D",
+          "#2E4936",
+          "#486B52",
+          "#688D72",
+          "#90AE98",
+          "#B9D0BF",
+          "#E3F3E7"
+        ]
+      },
+      "brass-gold": {
+        "role": "secondary",
+        "displayName": "Brass Gold",
+        "canonical": "oklch(71.0% 0.134 87)",
+        "tonalRamp": [
+          "#140900",
+          "#342100",
+          "#583D00",
+          "#7F5B00",
+          "#A17C0A",
+          "#BFA159",
+          "#DEC791",
+          "#FDEDC9"
+        ]
+      },
+      "amber-gold": {
+        "role": "secondary",
+        "displayName": "Lit Amber",
+        "canonical": "oklch(79.5% 0.162 86)",
+        "tonalRamp": [
+          "#160700",
+          "#381F00",
+          "#5D3A00",
+          "#865700",
+          "#A97900",
+          "#C69F43",
+          "#E3C684",
+          "#FFECC0"
+        ]
+      },
+      "on-amber": {
+        "role": "secondary",
+        "displayName": "On Lit Amber",
+        "canonical": "oklch(21.6% 0.006 56)",
+        "tonalRamp": [
+          "#0C0B0A",
+          "#262523",
+          "#444140",
+          "#64605E",
+          "#85817F",
+          "#A7A4A2",
+          "#CBC8C7",
+          "#F0EEED"
+        ]
+      },
+      "limestone-bg": {
+        "role": "neutral",
+        "displayName": "Warm Limestone",
+        "canonical": "oklch(96.7% 0.007 89)",
+        "tonalRamp": [
+          "#0C0B0A",
+          "#262523",
+          "#43423F",
+          "#63615D",
+          "#84827E",
+          "#A6A5A1",
+          "#CAC9C6",
+          "#EFEEEC"
+        ]
+      },
+      "obsidian-bg": {
+        "role": "neutral",
+        "displayName": "Obsidian Night",
+        "canonical": "oklch(16.2% 0.009 169)",
+        "tonalRamp": [
+          "#0A0C0B",
+          "#232625",
+          "#3F4341",
+          "#5D6360",
+          "#7E8481",
+          "#A1A6A4",
+          "#C6CAC8",
+          "#ECEFEE"
+        ]
+      },
+      "paper-surface": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "oklch(100.0% 0.000 90)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#A5A5A5",
+          "#C9C9C9",
+          "#EEEEEE"
+        ]
+      },
+      "pine-surface": {
+        "role": "neutral",
+        "displayName": "Pine Surface",
+        "canonical": "oklch(20.8% 0.014 163)",
+        "tonalRamp": [
+          "#090C0A",
+          "#222624",
+          "#3D4440",
+          "#5B645F",
+          "#7C8580",
+          "#9FA7A3",
+          "#C5CBC8",
+          "#EBF0ED"
+        ]
+      },
+      "sand-variant": {
+        "role": "neutral",
+        "displayName": "Soft Sand",
+        "canonical": "oklch(93.5% 0.013 87)",
+        "tonalRamp": [
+          "#0C0B09",
+          "#262521",
+          "#44423C",
+          "#64615A",
+          "#85827B",
+          "#A7A59F",
+          "#CBC9C4",
+          "#F0EEEB"
+        ]
+      },
+      "pine-variant": {
+        "role": "neutral",
+        "displayName": "Pine Variant",
+        "canonical": "oklch(25.5% 0.020 163)",
+        "tonalRamp": [
+          "#080C0A",
+          "#202723",
+          "#3B4540",
+          "#58655E",
+          "#79867F",
+          "#9DA8A2",
+          "#C3CBC7",
+          "#EAF0ED"
+        ]
+      },
+      "sand-border": {
+        "role": "neutral",
+        "displayName": "Sand Hairline",
+        "canonical": "oklch(89.8% 0.016 86)",
+        "tonalRamp": [
+          "#0C0B08",
+          "#272520",
+          "#45423B",
+          "#656158",
+          "#868279",
+          "#A8A59D",
+          "#CCC9C3",
+          "#F0EEEA"
+        ]
+      },
+      "pine-border": {
+        "role": "neutral",
+        "displayName": "Pine Hairline",
+        "canonical": "oklch(30.4% 0.026 163)",
+        "tonalRamp": [
+          "#080C0A",
+          "#1F2723",
+          "#39453F",
+          "#56665D",
+          "#76877E",
+          "#9BA9A2",
+          "#C1CCC6",
+          "#E9F1EC"
+        ]
+      },
+      "ink-charcoal": {
+        "role": "neutral",
+        "displayName": "Ink Charcoal",
+        "canonical": "oklch(20.8% 0.004 107)",
+        "tonalRamp": [
+          "#0B0B0A",
+          "#252524",
+          "#424240",
+          "#61615F",
+          "#828280",
+          "#A5A5A3",
+          "#C9C9C8",
+          "#EEEEED"
+        ]
+      },
+      "crisp-white": {
+        "role": "neutral",
+        "displayName": "Crisp White",
+        "canonical": "oklch(96.6% 0.003 128)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#252524",
+          "#424241",
+          "#616160",
+          "#828381",
+          "#A4A5A4",
+          "#C9C9C8",
+          "#EEEEEE"
+        ]
+      },
+      "stone-muted": {
+        "role": "neutral",
+        "displayName": "Stone",
+        "canonical": "oklch(54.5% 0.014 92)",
+        "tonalRamp": [
+          "#0C0B09",
+          "#262521",
+          "#44423C",
+          "#646159",
+          "#85827A",
+          "#A7A59E",
+          "#CBC9C3",
+          "#F0EEEA"
+        ]
+      },
+      "sage-muted": {
+        "role": "neutral",
+        "displayName": "Sage",
+        "canonical": "oklch(66.9% 0.021 163)",
+        "tonalRamp": [
+          "#080C0A",
+          "#202723",
+          "#3B4540",
+          "#58655E",
+          "#79867F",
+          "#9DA8A2",
+          "#C3CCC7",
+          "#EAF0ED"
+        ]
+      },
+      "error-container": {
+        "role": "error",
+        "displayName": "Stop Rose",
+        "canonical": "oklch(92.2% 0.030 23)",
+        "tonalRamp": [
+          "#100909",
+          "#2D2221",
+          "#4D3E3D",
+          "#705B5A",
+          "#927C7B",
+          "#B3A09F",
+          "#D4C5C4",
+          "#F6ECEB"
+        ]
+      },
+      "on-error-container": {
+        "role": "error",
+        "displayName": "On Stop Rose",
+        "canonical": "oklch(25.4% 0.079 28)",
+        "tonalRamp": [
+          "#160605",
+          "#381C19",
+          "#5D3531",
+          "#86514A",
+          "#AA726A",
+          "#C79891",
+          "#E5BFBA",
+          "#FFE7E4"
+        ]
+      },
+      "error-container-dark": {
+        "role": "error",
+        "displayName": "Stop Rose (dark)",
+        "canonical": "oklch(42.0% 0.147 28)",
+        "tonalRamp": [
+          "#1D0101",
+          "#45100C",
+          "#70251F",
+          "#9F3C33",
+          "#C65F53",
+          "#E18A7F",
+          "#FAB5AB",
+          "#FFE1DA"
+        ]
+      },
+      "on-error-container-dark": {
+        "role": "error",
+        "displayName": "On Stop Rose (dark)",
+        "canonical": "oklch(92.2% 0.030 23)",
+        "tonalRamp": [
+          "#100909",
+          "#2D2221",
+          "#4D3E3D",
+          "#705B5A",
+          "#927C7B",
+          "#B3A09F",
+          "#D4C5C4",
+          "#F6ECEB"
+        ]
+      },
+      "compass-north": {
+        "role": "functional",
+        "displayName": "Compass North",
+        "canonical": "oklch(57.7% 0.215 27)",
+        "tonalRamp": [
+          "#240000",
+          "#510000",
+          "#820005",
+          "#B70C14",
+          "#DF413A",
+          "#F8796D",
+          "#FFAA9E",
+          "#FFDAD1"
+        ]
+      },
+      "kaaba-black": {
+        "role": "functional",
+        "displayName": "Kaaba Black",
+        "canonical": "oklch(19.1% 0.002 107)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#252524",
+          "#424241",
+          "#616160",
+          "#828281",
+          "#A5A5A4",
+          "#C9C9C8",
+          "#EEEEEE"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Hero countdown only."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Screen titles."
+      },
+      "readout": {
+        "displayName": "Readout",
+        "purpose": "Qibla instrument readouts."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Gregorian date and location name."
+      },
+      "time": {
+        "displayName": "Time",
+        "purpose": "Prayer times in the schedule."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Prayer names, Qibla guidance."
+      },
+      "body-small": {
+        "displayName": "Body small",
+        "purpose": "Permission titles, file names, supporting copy."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Buttons, chips, pill, nav labels."
+      },
+      "overline": {
+        "displayName": "Overline",
+        "purpose": "Section headers and the Hijri date; uppercase."
+      }
+    },
+    "shadows": [
+      {
+        "name": "next-prayer-lift",
+        "value": "shadowElevation 2dp (~0 1px 3px rgba(0,0,0,.12))",
+        "purpose": "Only the next prayer's row."
+      }
+    ],
+    "motion": [
+      {
+        "name": "qibla-dial-spring",
+        "value": "spring(dampingRatio = NoBouncy, stiffness = Low)",
+        "purpose": "Compass rose rotation; settles calmly."
+      },
+      {
+        "name": "qibla-accent-fade",
+        "value": "animateColorAsState (default tween)",
+        "purpose": "Accent cypress -> brass gold on Qibla lock."
+      },
+      {
+        "name": "qibla-lock-haptic",
+        "value": "HapticFeedbackType.LongPress",
+        "purpose": "Fires once when alignment is within ±3°."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "compact",
+        "value": "<600dp (only layout implemented)"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Hero Countdown",
+      "kind": "card",
+      "refersTo": "hero-countdown",
+      "description": "Signature card: next prayer, target time, tabular countdown, Qibla bearing over faint astrolabe rings.",
+      "html": "<div class=\"ds-hero\"><div class=\"ds-hero-top\"><span class=\"ds-hero-tag\"><i></i>MENUJU ASHAR</span><span class=\"ds-hero-at\">15:12 WIB</span></div><div class=\"ds-hero-count\">01:24:37</div><hr><div class=\"ds-hero-meta\"><span>Sudut Kiblat Lokasi Ini</span><b>295.1°</b></div></div>",
+      "css": ".ds-hero{font-family: Roboto, system-ui, sans-serif;position:relative;overflow:hidden;background:#14382E;color:#F4F1EA;border:1px solid rgba(197,155,39,.25);border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:16px;width:320px}.ds-hero::before{content:'';position:absolute;width:290px;height:290px;right:-115px;top:-120px;border:1.5px solid rgba(197,155,39,.07);border-radius:50%}.ds-hero-top,.ds-hero-meta{display:flex;justify-content:space-between;align-items:center}.ds-hero-tag{font-size:12px;font-weight:700;letter-spacing:1.5px;opacity:.85;display:flex;gap:8px;align-items:center}.ds-hero-tag i{width:8px;height:8px;border-radius:50%;background:#C59B27}.ds-hero-at{color:#C59B27;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}.ds-hero-count{font-size:44px;font-weight:700;letter-spacing:-1px;font-variant-numeric:tabular-nums}.ds-hero hr{border:0;border-top:1px solid rgba(244,241,234,.1);margin:0}.ds-hero-meta span{font-size:12px;opacity:.7}.ds-hero-meta b{font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}"
+    },
+    {
+      "name": "Prayer Row",
+      "kind": "custom",
+      "refersTo": "prayer-row",
+      "description": "Default schedule row: name, tabular time, reminder-mode icon button.",
+      "html": "<div class=\"ds-row\"><span class=\"ds-row-l\">Maghrib</span><span class=\"ds-row-r\">17:58<button class=\"ds-row-btn\" aria-label=\"Mode Pengingat Maghrib\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\"><path fill=\"currentColor\" d=\"M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zm6-6V11c0-3.07-1.64-5.64-4.5-6.32V4a1.5 1.5 0 0 0-3 0v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z\"/></svg></button></span></div>",
+      "css": ".ds-row{font-family: Roboto, system-ui, sans-serif;display:flex;justify-content:space-between;align-items:center;width:320px;background:#FFFFFF;color:#181816;border:1px solid #E2DDD2;border-radius:16px;padding:14px 18px}.ds-row-l{display:flex;align-items:center;gap:14px;font-size:16px;font-weight:500}.ds-row-l i{width:6px;height:6px;border-radius:50%;background:rgba(115,112,103,.5)}.ds-row-r{display:flex;align-items:center;gap:4px;font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}.ds-row-btn{width:48px;height:48px;border:0;border-radius:50%;background:none;color:#C59B27;cursor:pointer;display:grid;place-items:center}.ds-row-btn:hover{background:rgba(24,24,22,.08)}.ds-row-btn:focus-visible{outline:2px solid #0F4C3A;outline-offset:2px}"
+    },
+    {
+      "name": "Prayer Row (Next)",
+      "kind": "custom",
+      "refersTo": "prayer-row-next",
+      "description": "The next prayer: 1.5dp cypress outline, 2dp lift, BERIKUTNYA badge.",
+      "html": "<div class=\"ds-next\"><span class=\"ds-next-l\">Ashar<em>BERIKUTNYA</em></span><span class=\"ds-next-t\">15:12</span></div>",
+      "css": ".ds-next{font-family: Roboto, system-ui, sans-serif;display:flex;justify-content:space-between;align-items:center;width:320px;background:#FFFFFF;border:1.5px solid #0F4C3A;border-radius:16px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,.12)}.ds-next-l{display:flex;align-items:center;gap:14px;font-size:16px;font-weight:700;color:#181816}.ds-next-l i{width:14px;height:14px;border-radius:50%;background:rgba(15,76,58,.2);display:grid;place-items:center}.ds-next-l b{width:7px;height:7px;border-radius:50%;background:#0F4C3A}.ds-next-l em{font-style:normal;font-size:9px;font-weight:700;letter-spacing:.8px;color:#0F4C3A;background:#DDE6E3;border-radius:6px;padding:3px 8px}.ds-next-t{font-size:17px;font-weight:700;color:#0F4C3A;font-variant-numeric:tabular-nums}"
+    },
+    {
+      "name": "Reminder Mode Chips",
+      "kind": "chip",
+      "refersTo": "mode-chip-selected",
+      "description": "Three equal segments per prayer: Adzan, Getar, Mati.",
+      "html": "<div class=\"ds-chips\"><button class=\"ds-chip ds-on\">Adzan</button><button class=\"ds-chip\">Getar</button><button class=\"ds-chip\">Mati</button></div>",
+      "css": ".ds-chips{font-family: Roboto, system-ui, sans-serif;display:flex;gap:8px;width:300px}.ds-chip{flex:1;font:inherit;font-size:12px;font-weight:500;padding:8px 0;border-radius:10px;border:1px solid #E2DDD2;background:#F6F4EF;color:#737067;cursor:pointer}.ds-chip:hover{border-color:#737067}.ds-chip:focus-visible{outline:2px solid #0F4C3A;outline-offset:2px}.ds-chip.ds-on{background:#DDE6E3;border:1.5px solid #0F4C3A;color:#0F4C3A;font-weight:700}"
+    },
+    {
+      "name": "Outlined Button",
+      "kind": "button",
+      "refersTo": "button-outlined",
+      "description": "Secondary actions: audio pickers, Tes Getar.",
+      "html": "<button class=\"ds-btn-out\">Ubah Audio Reguler (.mp3 / .wav)</button>",
+      "css": ".ds-btn-out{font-family: Roboto, system-ui, sans-serif;font-size:14px;font-weight:600;color:#0F4C3A;background:#FFFFFF;border:1px solid #E2DDD2;border-radius:10px;padding:10px 16px;cursor:pointer;transition:background .2s}.ds-btn-out:hover{background:#DDE6E3}.ds-btn-out:focus-visible{outline:2px solid #0F4C3A;outline-offset:2px}"
+    },
+    {
+      "name": "Stop Button",
+      "kind": "button",
+      "refersTo": "button-stop",
+      "description": "Hentikan: the single destructive-coloured control.",
+      "html": "<button class=\"ds-btn-stop\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\"><path fill=\"currentColor\" d=\"M6 6h12v12H6z\"/></svg>Hentikan</button>",
+      "css": ".ds-btn-stop{font-family: Roboto, system-ui, sans-serif;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#410E0B;background:#F9DEDC;border:0;border-radius:10px;padding:10px 16px;cursor:pointer}.ds-btn-stop:hover{filter:brightness(.96)}.ds-btn-stop:focus-visible{outline:2px solid #410E0B;outline-offset:2px}"
+    },
+    {
+      "name": "Location Pill",
+      "kind": "chip",
+      "refersTo": "location-pill",
+      "description": "Header location with GPS refresh.",
+      "html": "<button class=\"ds-pill\"><svg viewBox=\"0 0 24 24\" width=\"14\" height=\"14\"><path fill=\"#0F4C3A\" d=\"M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z\"/></svg>Jakarta Pusat</button>",
+      "css": ".ds-pill{font-family: Roboto, system-ui, sans-serif;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:#181816;background:#FFFFFF;border:1px solid #E2DDD2;border-radius:9999px;padding:8px 12px;cursor:pointer}.ds-pill:hover{background:#EDE9E0}.ds-pill:focus-visible{outline:2px solid #0F4C3A;outline-offset:2px}"
+    },
+    {
+      "name": "Navigation Bar",
+      "kind": "nav",
+      "refersTo": "nav-bar",
+      "description": "Three-destination Material navigation bar with Cypress Mist indicator.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-i ds-on\"><span>&#9638;</span>Jadwal</a><a class=\"ds-nav-i\"><span>&#9673;</span>Kiblat</a><a class=\"ds-nav-i\"><span>&#9881;</span>Setelan</a></nav>",
+      "css": ".ds-nav{font-family: Roboto, system-ui, sans-serif;display:flex;width:340px;background:#FFFFFF;border-top:1px solid #E2DDD2;padding:12px 0 16px}.ds-nav-i{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;font-weight:500;color:#737067;cursor:pointer}.ds-nav-i span{width:64px;height:32px;border-radius:9999px;display:grid;place-items:center;font-size:18px}.ds-nav-i:hover span{background:rgba(24,24,22,.06)}.ds-nav-i.ds-on{color:#0F4C3A;font-weight:700}.ds-nav-i.ds-on span{background:#DDE6E3}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Brass Astrolabe",
+    "overview": "MyPrayer is an instrument for reading sacred time. The astrolabe is the governing image: brass markings on deep cypress, fine graduated ticks, and numerals set in tabular figures so a time or a bearing never shifts as it counts. The hero card carries faint astrolabe rings and a horizon arc. The Qibla screen is an actual instrument dial with a lubber line, graduated bezel and crosshair. Precision lives in the numerals, the compass and the brass accents.\n\nAround that precision, the surfaces stay calm and devotional. Backgrounds are warm limestone, never stark white. Cards are flat with hairline outlines and softly rounded corners. Gold appears in small amounts and means something each time it does. The density is that of a single-column phone schedule: one hero, six rows, and plenty of air between them. The intended feel is quiet and respectful, an app you open five times a day without it ever raising its voice.\n\nThe system has two equal schemes. Light is \"Warm Limestone & Deep Cypress\". Dark is \"Obsidian Night & Mint Jade\". Both are hand-tuned, not inverted from each other.",
+    "keyCharacteristics": [
+      "Deep cypress green with brass gold, on warm limestone (light) or green-black obsidian (dark).",
+      "Tabular numerals for every time, countdown, degree and percentage.",
+      "Flat surfaces, 1dp hairline outlines, depth from tone rather than shadow.",
+      "Soft corners that grow with importance: 10dp controls, 16dp rows, 18dp sections, 24dp hero.",
+      "Astrolabe geometry as the single decorative motif, always at very low opacity."
+    ],
+    "rules": [
+      {
+        "name": "The Brand Palette Rule",
+        "body": "MyPrayer always renders its own palette. Dynamic Color (Material You) is not supported on any Android version; `MyPrayerTheme` takes no `dynamicColor` parameter.",
+        "section": "colors"
+      },
+      {
+        "name": "The Brass Means Moment Rule",
+        "body": "Gold marks time and alignment: the next prayer, the Hijri date, the Qibla lock. It never fills a large surface. At most it is an outline at 25% opacity, a dot, a line of text or an icon.",
+        "section": "colors"
+      },
+      {
+        "name": "The Every Role Is Set Rule",
+        "body": "Every Material colour role a component reads must be defined in both schemes, because unset roles fall back to Material's baseline purple. `Theme.kt` sets them all:",
+        "section": "colors"
+      },
+      {
+        "name": "The Steady Numerals Rule",
+        "body": "Every number that changes or is compared (times, countdowns, degrees, deltas, volume percentage) uses tabular figures (`fontFeatureSettings = \"tnum\"`). A countdown that jitters breaks the instrument.",
+        "section": "typography"
+      },
+      {
+        "name": "The Overline Budget Rule",
+        "body": "Uppercase overlines are labels, not decoration: at most one per section. Copy in them should be devotional rather than technical. The current \"INSTRUMEN ARAH KIBLAT\" and \"KONFIGURASI SISTEM\" lean towards a control panel and are candidates for gentler wording.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Sanctuary Rule",
+        "body": "Surfaces don't float. Emphasis comes from outline weight (1dp to 1.5dp), colour and tone. The single 2dp lift on the next prayer is the one exception, and it stays the only one.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** render the brand palette on every Android version (The Brand Palette Rule).",
+      "**Do** use tabular figures for every number that changes or is compared (The Steady Numerals Rule).",
+      "**Do** express emphasis with outline weight (1dp to 1.5dp), cypress colour and type weight before reaching for shadow.",
+      "**Do** keep astrolabe geometry at 9–12% opacity, behind the content, and only on signature surfaces (hero, Qibla dial).",
+      "**Do** read colours from Material roles (`MaterialTheme.colorScheme.*`), and define every role a component uses in both schemes.",
+      "**Do** design and check light and dark mode together. Both are first-class.",
+      "**Do** keep touch targets at least 48dp, even when the visible mark is smaller (the pill, the hero status row).",
+      "**Do** make any change that can silence an adzan announce itself and offer undo."
+    ],
+    "donts": [
+      "**Don't** enable Dynamic Color.",
+      "**Don't** add drop shadows beyond the next-prayer row's 2dp lift (The Flat Sanctuary Rule).",
+      "**Don't** fill large areas with gold, or use gold for anything other than moments, alignment, and the missing-permission warning.",
+      "**Don't** hard-code hex values in screens. The only exceptions are Compass North and Kaaba Black inside the Qibla dial.",
+      "**Don't** reintroduce unused palettes in `Color.kt`. It holds only the tokens the two schemes use.",
+      "**Don't** hard-code a time-zone label or compass direction. Derive WIB/WITA/WIT from the device offset, and the direction from the bearing.",
+      "**Don't** stack uppercase overlines or use control-panel wording where a gentle label will do (The Overline Budget Rule)."
+    ]
+  }
+}

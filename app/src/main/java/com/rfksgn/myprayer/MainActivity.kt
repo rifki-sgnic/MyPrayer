@@ -21,8 +21,13 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.flow.collectLatest
+import androidx.compose.material3.Text
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -87,17 +92,28 @@ class MainActivity : ComponentActivity() {
                             permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
                     if (granted) {
                         viewModel.refreshGpsLocation()
+                    } else {
+                        viewModel.onLocationPermissionDenied()
                     }
                 }
 
-                LaunchedEffect(Unit) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        permissionLauncher.launch(arrayOf(Manifest.permission.POST_NOTIFICATIONS))
+                val snackbarHostState = remember { SnackbarHostState() }
+                LaunchedEffect(viewModel) {
+                    // collectLatest: a newer message replaces the one on screen
+                    viewModel.messages.collectLatest { message ->
+                        val result = snackbarHostState.showSnackbar(
+                            message = message.text,
+                            actionLabel = message.actionLabel,
+                            withDismissAction = message.actionLabel == null,
+                            duration = SnackbarDuration.Short
+                        )
+                        if (result == SnackbarResult.ActionPerformed) message.action?.invoke()
                     }
                 }
 
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
+                    snackbarHost = { SnackbarHost(snackbarHostState) },
                     bottomBar = {
                         Column {
                             HorizontalDivider(
@@ -178,15 +194,22 @@ class MainActivity : ComponentActivity() {
                         0 -> HomeScreen(
                             uiState = uiState,
                             onRefreshLocationClick = {
-                                permissionLauncher.launch(
-                                    arrayOf(
-                                        Manifest.permission.ACCESS_FINE_LOCATION,
-                                        Manifest.permission.ACCESS_COARSE_LOCATION
-                                    )
-                                )
+                                val permissions = buildList {
+                                    add(Manifest.permission.ACCESS_FINE_LOCATION)
+                                    add(Manifest.permission.ACCESS_COARSE_LOCATION)
+                                    // First-run setup asks for notifications in the same explained step
+                                    if (uiState.isDefaultLocation &&
+                                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                                    ) {
+                                        add(Manifest.permission.POST_NOTIFICATIONS)
+                                    }
+                                }
+                                permissionLauncher.launch(permissions.toTypedArray())
                             },
                             onToggleAlarm = { prayerName -> viewModel.cycleReminderMode(prayerName) },
-                            modifier = Modifier.padding(innerPadding)
+                            onOpenSettings = { selectedTab = 2 },
+                            // Home draws its sky under the status bar and pads the top itself
+                            modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
                         )
                         1 -> {
                             val azimuth by compassSensor.getAzimuthFlow(
