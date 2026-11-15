@@ -4,9 +4,20 @@ import android.os.Build
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.TextAutoSize
@@ -21,7 +32,15 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material.icons.filled.WbSunny
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -34,10 +53,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
@@ -220,7 +239,12 @@ private fun LocationPill(
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
-            .clickable(enabled = !isUpdating, role = Role.Button, onClickLabel = "Perbarui lokasi", onClick = onClick)
+            .clickable(
+                enabled = !isUpdating,
+                role = Role.Button,
+                onClickLabel = "Perbarui lokasi",
+                onClick = onClick
+            )
             .heightIn(min = 48.dp)
             .padding(horizontal = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -486,7 +510,11 @@ private fun ReminderStatus(
                 else MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(16.dp)
             )
-            Text(text = status, style = textStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                text = status,
+                style = textStyle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -501,7 +529,8 @@ private fun PrayerTimelineItem(
     reminderMode: ReminderMode,
     onToggleAlarm: () -> Unit
 ) {
-    val backgroundColor = if (isPassed) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.surface
+    val backgroundColor =
+        if (isPassed) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.surface
 
     val borderStroke = when {
         isNext -> BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
@@ -522,7 +551,12 @@ private fun PrayerTimelineItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 18.dp, end = 4.dp, top = if (isNext) 8.dp else 4.dp, bottom = if (isNext) 8.dp else 4.dp),
+                .padding(
+                    start = 18.dp,
+                    end = 4.dp,
+                    top = if (isNext) 8.dp else 4.dp,
+                    bottom = if (isNext) 8.dp else 4.dp
+                ),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -593,7 +627,10 @@ private fun PrayerTimelineItem(
                             contentDescription = "Pengingat $name: ${reminderMode.label}. Ketuk untuk mengganti.",
                             modifier = Modifier.size(18.dp),
                             tint = when {
-                                reminderMode == ReminderMode.SILENT -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                reminderMode == ReminderMode.SILENT -> MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                    alpha = 0.6f
+                                )
+
                                 isNext -> MaterialTheme.colorScheme.primary
                                 else -> MaterialTheme.colorScheme.secondary
                             }
@@ -612,8 +649,7 @@ private data class PrayerRowData(
 )
 
 private fun isPrayerPassed(timeStr: String, now: LocalTime, isNext: Boolean): Boolean {
-    if (isNext) return false
-    return try {
+    return !isNext && try {
         val parts = timeStr.split(":")
         val prayerTime = LocalTime.of(parts[0].toInt(), parts[1].toInt())
         prayerTime.isBefore(now)

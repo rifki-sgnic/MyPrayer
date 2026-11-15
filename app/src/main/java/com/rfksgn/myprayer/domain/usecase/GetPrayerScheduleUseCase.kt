@@ -9,7 +9,6 @@ import com.batoulapps.adhan2.PrayerTimes
 import com.batoulapps.adhan2.Qibla
 import com.batoulapps.adhan2.data.DateComponents
 import com.rfksgn.myprayer.domain.model.PrayerSchedule
-import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import java.time.LocalDate
@@ -84,7 +83,7 @@ class GetPrayerScheduleUseCase {
     }
 
     @OptIn(ExperimentalTime::class)
-    private fun formatTime(instant: Instant): String {
+    private fun formatTime(instant: kotlin.time.Instant): String {
         val localTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
         return "%02d:%02d".format(localTime.hour, localTime.minute)
     }
