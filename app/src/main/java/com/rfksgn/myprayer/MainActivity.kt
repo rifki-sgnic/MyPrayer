@@ -12,8 +12,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Explore
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -32,6 +34,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -40,16 +43,21 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rfksgn.myprayer.core.alarm.AdzanAlarmScheduler
+import com.rfksgn.myprayer.core.database.QuranDatabase
 import com.rfksgn.myprayer.core.location.LocationTracker
 import com.rfksgn.myprayer.core.sensor.CompassSensorManager
 import com.rfksgn.myprayer.data.local.LocationPreferences
+import com.rfksgn.myprayer.data.local.QuranPreferences
 import com.rfksgn.myprayer.data.local.SavedLocation
+import com.rfksgn.myprayer.data.remote.NetworkClient
+import com.rfksgn.myprayer.data.repository.QuranRepository
 import com.rfksgn.myprayer.presentation.home.HomeScreen
 import com.rfksgn.myprayer.presentation.home.HomeViewModel
 import com.rfksgn.myprayer.presentation.qibla.QiblaScreen
-import com.rfksgn.myprayer.ui.theme.MyPrayerTheme
-import androidx.compose.material.icons.filled.Settings
+import com.rfksgn.myprayer.presentation.quran.QuranScreen
+import com.rfksgn.myprayer.presentation.quran.QuranViewModel
 import com.rfksgn.myprayer.presentation.settings.SettingsScreen
+import com.rfksgn.myprayer.ui.theme.MyPrayerTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,9 +65,12 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val locationPrefs = LocationPreferences(applicationContext)
+        val quranPrefs = QuranPreferences(applicationContext)
         val locationTracker = LocationTracker(applicationContext)
         val compassSensor = CompassSensorManager(applicationContext)
         val alarmScheduler = AdzanAlarmScheduler(applicationContext)
+        val quranDb = QuranDatabase.getInstance(applicationContext)
+        val quranRepository = QuranRepository(quranDb.quranDao(), NetworkClient.quranApiService)
 
         setContent {
             MyPrayerTheme {
@@ -77,13 +88,23 @@ class MainActivity : ComponentActivity() {
                     }
                 )
 
+                val quranViewModel: QuranViewModel = viewModel(
+                    factory = object : ViewModelProvider.Factory {
+                        @Suppress("UNCHECKED_CAST")
+                        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                            return QuranViewModel(quranRepository, quranPrefs) as T
+                        }
+                    }
+                )
+                val quranUiState by quranViewModel.uiState.collectAsState()
+
                 val uiState by viewModel.uiState.collectAsState()
                 val savedLocation by locationPrefs.locationFlow.collectAsState(
                     initial = SavedLocation(-6.1754, 106.8272, "Jakarta Pusat")
                 )
 
-                // State tab aktif (0 = Jadwal, 1 = Kiblat)
-                var selectedTab by remember { mutableIntStateOf(0) }
+                // State tab aktif (0 = Jadwal, 1 = Kiblat, 2 = Al-Quran, 3 = Setelan)
+                var selectedTab by rememberSaveable { mutableIntStateOf(0) }
 
                 val permissionLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -173,17 +194,47 @@ class MainActivity : ComponentActivity() {
                                 NavigationBarItem(
                                     selected = selectedTab == 2,
                                     onClick = { selectedTab = 2 },
-                                    icon = { Icon(Icons.Default.Settings, contentDescription = "Setelan") },
+                                    icon = {
+                                        Icon(
+                                            Icons.AutoMirrored.Filled.MenuBook,
+                                            contentDescription = "Al-Quran"
+                                        )
+                                    },
                                     label = {
                                         Text(
-                                            text = "Setelan",
+                                            "Al-Quran",
                                             fontWeight = if (selectedTab == 2) FontWeight.Bold else FontWeight.Medium
                                         )
                                     },
                                     colors = NavigationBarItemDefaults.colors(
                                         selectedIconColor = MaterialTheme.colorScheme.primary,
                                         selectedTextColor = MaterialTheme.colorScheme.primary,
-                                        indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                        indicatorColor = MaterialTheme.colorScheme.primary.copy(
+                                            alpha = 0.12f
+                                        )
+                                    )
+                                )
+                                NavigationBarItem(
+                                    onClick = { selectedTab = 3 },
+                                    selected = selectedTab == 3,
+                                    icon = {
+                                        Icon(
+                                            Icons.Default.Settings,
+                                            contentDescription = "Setelan"
+                                        )
+                                    },
+                                    label = {
+                                        Text(
+                                            text = "Setelan",
+                                            fontWeight = if (selectedTab == 3) FontWeight.Bold else FontWeight.Medium
+                                        )
+                                    },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                                        indicatorColor = MaterialTheme.colorScheme.primary.copy(
+                                            alpha = 0.12f
+                                        )
                                     )
                                 )
                             }
@@ -207,10 +258,11 @@ class MainActivity : ComponentActivity() {
                                 permissionLauncher.launch(permissions.toTypedArray())
                             },
                             onToggleAlarm = { prayerName -> viewModel.cycleReminderMode(prayerName) },
-                            onOpenSettings = { selectedTab = 2 },
+                            onOpenSettings = { selectedTab = 3 },
                             // Home draws its sky under the status bar and pads the top itself
                             modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
                         )
+
                         1 -> {
                             val azimuth by compassSensor.getAzimuthFlow(
                                 savedLocation.latitude,
@@ -219,12 +271,37 @@ class MainActivity : ComponentActivity() {
 
                             QiblaScreen(
                                 currentAzimuth = azimuth,
-                                qiblaDirection = (uiState.schedule?.qiblaDirection ?: 295.1).toFloat(),
+                                qiblaDirection = (uiState.schedule?.qiblaDirection
+                                    ?: 295.1).toFloat(),
                                 locationName = uiState.locationName,
                                 modifier = Modifier.padding(innerPadding)
                             )
                         }
-                        2 -> SettingsScreen(
+
+                        2 -> QuranScreen(
+                            uiState = quranUiState,
+                            onSearchQueryChange = quranViewModel::onSearchQueryChange,
+                            onTabSelected = quranViewModel::onTabSelected,
+                            onOpenSurah = { surahNum, ayahNum ->
+                                quranViewModel.openSurah(
+                                    surahNum,
+                                    ayahNum
+                                )
+                            },
+                            onCloseSurah = quranViewModel::closeActiveSurah,
+                            onToggleBookmark = quranViewModel::toggleBookmark,
+                            onMarkLastRead = { surah, ayahNum ->
+                                quranViewModel.markAsLastRead(
+                                    surah,
+                                    ayahNum
+                                )
+                            },
+                            onToggleShowLatin = quranViewModel::toggleShowLatin,
+                            onDownloadFullQuran = quranViewModel::downloadAll30JuzOffline,
+                            modifier = Modifier.padding(innerPadding)
+                        )
+
+                        3 -> SettingsScreen(
                             reminderModes = uiState.reminderModes,
                             customAudio = uiState.customAudio,
                             onVolumeChange = { newVol -> viewModel.setAdzanVolume(newVol) },

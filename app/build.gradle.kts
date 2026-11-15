@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -66,5 +67,16 @@ dependencies {
     // Play Services Location + Coroutines support
     implementation(libs.play.services.location)
     implementation(libs.kotlinx.coroutines.play.services)
+
+    // Room Database
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+
+    // Retrofit & OkHttp
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
+    implementation(libs.okhttp)
+    implementation(libs.okhttp.logging)
 
 }
