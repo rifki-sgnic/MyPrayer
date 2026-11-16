@@ -5,7 +5,6 @@ import android.app.AlarmManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
-import android.os.PowerManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -18,21 +17,13 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 
-/** The system permissions that decide whether the adzan fires on time and can be stopped. */
+/** The permission Home checks: without notifications the adzan's stop control never appears. */
 data class AdzanReadiness(
-    val notifications: Boolean,
-    val exactAlarm: Boolean,
-    val batteryUnrestricted: Boolean
+    val notifications: Boolean
 ) {
-    /** Exact alarms and battery limits decide punctuality; notifications only the stop control. */
-    val mayBeLate: Boolean get() = !exactAlarm || !batteryUnrestricted
-    val missingCount: Int get() = listOf(notifications, exactAlarm, batteryUnrestricted).count { !it }
-
     companion object {
         fun check(context: Context) = AdzanReadiness(
-            notifications = checkNotificationPermission(context),
-            exactAlarm = checkExactAlarmPermission(context),
-            batteryUnrestricted = checkBatteryUnrestricted(context)
+            notifications = checkNotificationPermission(context)
         )
     }
 }
@@ -65,8 +56,3 @@ fun checkExactAlarmPermission(context: Context): Boolean =
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         alarmManager.canScheduleExactAlarms()
     } else true
-
-fun checkBatteryUnrestricted(context: Context): Boolean {
-    val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
-    return pm.isIgnoringBatteryOptimizations(context.packageName)
-}

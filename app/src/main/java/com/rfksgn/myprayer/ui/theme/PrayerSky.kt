@@ -41,6 +41,10 @@ private fun prayerSky(nextPrayer: String, dark: Boolean): PrayerSky = when (next
     else PrayerSky(Color(0xFFD8DDE6), Color(0xFF8A93A6), 0.28f, 0.85f)
 }
 
+/** The sky tint and the sun/moon colour for [nextPrayer], for screens that paint their own sky (Kiblat). */
+fun prayerSkyColors(nextPrayer: String, dark: Boolean): Pair<Color, Color> =
+    prayerSky(nextPrayer, dark).let { it.sky to it.body }
+
 /** Secondary text on the tinted sky: Stone deepened so it keeps ≥4.5:1 on every phase in light mode. */
 val SkyStone = Color(0xFF5F5C55)
 

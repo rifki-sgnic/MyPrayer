@@ -30,7 +30,7 @@ Current implementation:
 - Times are calculated on the device with adhan2, using Kemenag-style parameters (Fajr 20°, Isha 18°, Shafi'i Asr, +2 minute safety margin). There is no network dependency for the schedule.
 - Three tabs: Jadwal (schedule, next-prayer countdown, Hijri date), Kiblat (compass), Setelan (settings).
 - Per-prayer reminder mode: Suara Adzan, Getar Saja, or Nonaktif. Separate custom audio for Subuh and for the other prayers. Alarm volume control. Test buttons.
-- Permission status for exact alarms, notifications and battery-optimization exemption.
+- Permission status for exact alarms and notifications.
 
 Constraints:
 - Indonesian only. All copy is in Bahasa Indonesia, using the local prayer names (Subuh, Dzuhur, Ashar, Maghrib, Isya). No localization is planned.

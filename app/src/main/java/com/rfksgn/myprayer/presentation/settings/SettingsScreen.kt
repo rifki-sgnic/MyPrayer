@@ -91,11 +91,9 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
-import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.rfksgn.myprayer.core.permission.checkBatteryUnrestricted
 import com.rfksgn.myprayer.core.permission.checkExactAlarmPermission
 import com.rfksgn.myprayer.core.permission.checkNotificationPermission
 import com.rfksgn.myprayer.data.local.CustomAdzanAudio
@@ -133,14 +131,12 @@ fun SettingsScreen(
 
     var hasNotifPerm by remember { mutableStateOf(checkNotificationPermission(context)) }
     var hasExactAlarmPerm by remember { mutableStateOf(checkExactAlarmPermission(context)) }
-    var isBatteryUnrestricted by remember { mutableStateOf(checkBatteryUnrestricted(context)) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 hasNotifPerm = checkNotificationPermission(context)
                 hasExactAlarmPerm = checkExactAlarmPermission(context)
-                isBatteryUnrestricted = checkBatteryUnrestricted(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -221,7 +217,7 @@ fun SettingsScreen(
 
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val c = remember(isDark) { SiagaColors(isDark) }
-    val missing = listOf(hasNotifPerm, hasExactAlarmPerm, isBatteryUnrestricted).count { !it }
+    val missing = listOf(hasNotifPerm, hasExactAlarmPerm).count { !it }
 
     Column(
         modifier = modifier
@@ -250,19 +246,6 @@ fun SettingsScreen(
                 onActivate = {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                         context.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM))
-                    }
-                }
-            )
-            PermissionLine(
-                title = "Baterai tanpa batas",
-                hint = "Pilih 'Tidak dibatasi'",
-                isGranted = isBatteryUnrestricted,
-                onActivate = {
-                    val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
-                        data = "package:${context.packageName}".toUri()
-                    }
-                    runCatching { context.startActivity(intent) }.onFailure {
-                        context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
                     }
                 }
             )

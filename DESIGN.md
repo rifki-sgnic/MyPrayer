@@ -154,7 +154,7 @@ components:
 
 **Creative North Star: "The Brass Astrolabe"**
 
-MyPrayer is an instrument for reading sacred time. The astrolabe is the governing image: brass markings on deep cypress, fine graduated ticks, and numerals set in tabular figures so a time or a bearing never shifts as it counts. Precision lives in the numerals and the brass accents. The Kiblat tab is the one place that leaves the astrolabe: it is a mosque carpet whose prayer rows (shaf) you straighten, with its own carpet palette.
+MyPrayer is an instrument for reading sacred time. The astrolabe is the governing image: brass markings on deep cypress, fine graduated ticks, and numerals set in tabular figures so a time or a bearing never shifts as it counts. Precision lives in the numerals and the brass accents. The Kiblat tab turns the astrolabe into a sundial: Tongkat Istiwa, after Rashdul Kiblat, the days the sun stands over the Ka'bah and every upright stick's shadow lies on the Qibla line. Setelan keeps a mosque-carpet palette of its own.
 
 Around that precision, the surfaces stay calm and devotional. Backgrounds are warm limestone, never stark white. Cards are flat with hairline outlines and softly rounded corners. Gold appears in small amounts and means something each time it does. The density is that of a single-column phone schedule: one large prayer name, six rows, and plenty of air between them. The intended feel is quiet and respectful, an app you open five times a day without it ever raising its voice.
 
@@ -165,8 +165,8 @@ The system has two equal schemes. Light is "Warm Limestone & Deep Cypress". Dark
 - Tabular numerals for every time, countdown, degree and percentage.
 - Flat surfaces, 1dp hairline outlines, depth from tone rather than shadow.
 - Soft corners that grow with importance: 10dp controls, 16dp rows, 18dp sections.
-- Astrolabe geometry as the decorative motif of the schedule: a faint astrolabe plate behind the top of the schedule screen. Kiblat uses the shaf carpet instead.
-- The schedule screen's sky follows the time of day of the next prayer.
+- Astrolabe geometry as the decorative motif: a faint astrolabe plate behind the top of the schedule screen, and the turning plate under the stick on Kiblat.
+- The sky on Jadwal and Kiblat follows the time of day of the next prayer.
 
 ## Colors
 
@@ -206,16 +206,18 @@ The schedule screen's top is tinted by the next prayer, so the page itself says 
 - **Stop Rose** (`error-container`, `on-error-container`; dark `error-container-dark`): only the "Hentikan" (stop adzan) button. These are Material 3 baseline values and are not yet set explicitly in the theme.
 - **Kaaba Black** (`kaaba-black`): the Kaaba emblem body only.
 
-### Kiblat Carpet
-The Kiblat tab has its own three colours, defined in `Color.kt` and used nowhere else. They are the same in both schemes; dark mode darkens the carpet 45% toward black.
-- **Carpet Red** (`carpet-red`): the full-bleed carpet. The location pill and the guidance panel use it darkened 25%.
-- **Carpet Ivory** (`carpet-ivory`): shaf lines (50%, 38% dark), arch motif (20%, 14% dark), the phone line (70%) and all text on the carpet (100% for values, 72–80% for labels).
-- **Carpet Gold** (`carpet-gold`): the Ka'bah marker, and the aligned state: shaf lines, phone line and "Lurus".
+### Setelan Carpet
+Setelan has its own carpet colours, defined in `Color.kt` and used nowhere else. They are the same in both schemes; dark mode darkens the carpet 45% toward black (`carpetColor`).
+- **Carpet Red** (`carpet-red`): the verdict hero.
+- **Carpet Ivory** (`carpet-ivory`): text, hairlines and the arch motif on the hero.
+- **Carpet Gold** (`carpet-gold`): the missing-permission count and icons on the hero, and the dark-mode accent.
+
+Kiblat uses the main palette and the time-of-day sky; Brass Gold marks the Ka'bah and the aligned state.
 
 ### Named Rules
 **The Brand Palette Rule.** MyPrayer always renders its own palette. Dynamic Color (Material You) is not supported on any Android version; `MyPrayerTheme` takes no `dynamicColor` parameter.
 
-**The Brass Means Moment Rule.** Gold marks time and alignment: the next prayer, the Hijri date, and (as Carpet Gold) the straightened shaf on Kiblat. It never fills a large surface. At most it is an outline at 25% opacity, a dot, a line of text or an icon.
+**The Brass Means Moment Rule.** Gold marks time and alignment: the next prayer, the Hijri date, and the Ka'bah and the aligned shadow on Kiblat. It never fills a large surface. At most it is an outline at 25% opacity, a dot, a line of text or an icon.
 
 **The Every Role Is Set Rule.** Every Material colour role a component reads must be defined in both schemes, because unset roles fall back to Material's baseline purple. `Theme.kt` sets them all:
 - `secondaryContainer` is Cypress Mist (`jade-mist` in dark). It carries tonal buttons, the slider track and the BERIKUTNYA badge.
@@ -236,7 +238,7 @@ Adding a component that reads a new role means adding that role to both schemes.
 - **Headline** (700, 24sp/32sp): screen titles such as "Pengaturan Adzan & Izin".
 - **Title** (600, 16sp/24sp): the Gregorian date and the location name.
 - **Time** (600, 17sp, tabular; 700 when it's the next prayer): prayer times in the schedule.
-- **Body** (500, 16sp/24sp, 0.5sp tracking; 700 for the next prayer): prayer names and the Kiblat guidance line (600).
+- **Body** (500, 16sp/24sp, 0.5sp tracking; 700 for the next prayer): prayer names.
 - **Body small** (400, 14sp/20sp): permission titles and audio file names (set to 600), plus supporting copy.
 - **Label** (500, 12sp/16sp): buttons, chips, pill text, nav labels (700 when selected).
 - **Overline** (700, 11sp, 1.2–1.5sp tracking, uppercase): section headers and the Hijri date. The "BERIKUTNYA" badge uses a 9sp, 0.8sp-tracked micro version.
@@ -259,9 +261,9 @@ Sizes are in sp. Ad-hoc `TextStyle(fontSize = …)` values in screens should mov
 
 ## Layout
 
-A single scrolling column on phones. Screens use a 20dp side gutter and 16dp top and bottom padding, with 20dp between major blocks (header, next prayer, section header, list). Prayer rows stack with 8dp gaps. Inside cards, groups are separated by 14–16dp and divided by hairlines. Section headers sit inset 4dp from the card edge.
+A single column on phones. Jadwal fits one screen and does not scroll: it is two blocks, the hero (header, next prayer, status row; 16dp apart) at the top and the schedule (at least 16dp below) pinned to the bottom, with spare height on tall screens opening between them. Scrolling switches on only when the page cannot fit (large font scale, a short screen, the first-run location card). Jadwal uses a 20dp side gutter, 8dp top and 12dp bottom padding. Prayer rows stack with 6dp gaps. Inside cards, groups are separated by 14–16dp and divided by hairlines. Section headers sit inset 4dp from the card edge.
 
-The Kiblat screen is not scrolled. The carpet fills the whole content area; the location pill floats top-left at the 20dp gutter, the phone line crosses at 49% of the height, and the guidance panel sits on a gradient at the bottom.
+The Kiblat screen is not scrolled. Like Jadwal, its sky runs under the status bar. The header row sits at the 20dp gutter below the status bar, the stick stands 286dp below the status bar (raised on short screens so its shadow clears the panel), and the guidance panel sits on a fade at the bottom.
 
 Navigation is a three-item Material navigation bar (Jadwal, Kiblat, Setelan) with a 1dp hairline above it and no tonal elevation. There is no tablet or landscape adaptation yet. A navigation rail on expanded widths is the expected path when that is needed.
 
@@ -285,17 +287,17 @@ Calm and devotional: soft corners, generous padding, quiet outlines. The instrum
 
 ### Next Prayer (signature)
 No card. The block sits straight on the screen background, so the prayer name is the one dominant mark on the screen.
-- **Name:** the next prayer ("Isya") in Display, Ink Charcoal / Crisp White. 44dp of air above it.
+- **Name:** the next prayer ("Isya") in Display, Ink Charcoal / Crisp White. 24dp of air above it (the 16dp block gap plus 8dp).
 - **Sub-line:** 10dp below the name, one line in 15sp medium Stone: "pukul **19:12** WIB · **00:24:30** lagi". The time is bold Deep Cypress; the countdown is semibold ink; both tabular. The zone label comes from the device offset (WIB, WITA or WIT; GMT±h elsewhere). Name and sub-line are one merged group for screen readers.
-- **Status row:** 32dp below the sub-line, under a hairline at 60%, a 48dp row. Left, the reminder status; right, "Kiblat {n}°", whose screen-reader label names the 16-point compass direction.
+- **Status row:** 16dp below the sub-line, under a hairline at 60%, a 48dp row. Left, the reminder status; right, "Kiblat {n}°", whose screen-reader label names the 16-point compass direction.
   - When the adzan is set up: a cypress check icon and "Pengingat aktif · 5 waktu" (or "n dari 5", or "Semua pengingat nonaktif") in Stone.
-  - When a permission is missing: a gold warning icon, "Adzan bisa terlambat" (or "Notifikasi adzan belum aktif") in ink, and a gold bold "Perbaiki". The whole row is a 48dp button that opens Setelan.
+  - When notifications are off: a gold warning icon, "Notifikasi adzan belum aktif" in ink, and a gold bold "Perbaiki". The whole row is a 48dp button that opens Setelan.
   - On first run, while the location is still the default, the row shows the neutral count, so the setup card is the only call to action.
 
 ### Prayer Rows
-The 48dp trailing control sets the row height, giving a compact row of about 56dp.
-- **Default:** Paper fill, 1dp Sand Hairline, 16dp radius. Padding is 18dp at the start, 4dp at the end and 4dp vertically. The name is in Body and the time in Time. There is no timeline dot; the next prayer is marked by its outline and badge.
-- **Next:** 1.5dp Deep Cypress outline, a 2dp lift, 8dp vertical padding, bold name, the "BERIKUTNYA" badge (Cypress Mist via `secondaryContainer`), and the time in cypress.
+The 48dp trailing control sets the row height, giving a compact row of 52dp (60dp for the next prayer).
+- **Default:** Paper fill, 1dp Sand Hairline, 16dp radius. Padding is 18dp at the start, 4dp at the end and 2dp vertically. The name is in Body and the time in Time. There is no timeline dot; the next prayer is marked by its outline and badge.
+- **Next:** 1.5dp Deep Cypress outline, a 2dp lift, 6dp vertical padding, bold name, the "BERIKUTNYA" badge (Cypress Mist via `secondaryContainer`), and the time in cypress.
 - **Passed:** background fill, hairline at 50%, text at 62% opacity, which keeps it at or above 4.5:1 on Warm Limestone.
 - **Trailing control:** a 48dp icon button that cycles the reminder mode (adzan, vibrate, off). Its icon is gold on upcoming rows, cypress on the next row, and muted at 60% when off. Its screen-reader label states the current mode: "Pengingat Isya: Getar Saja. Ketuk untuk mengganti." Every change shows a snackbar with "Urungkan" (undo). Terbit shows a static sun icon in a 48dp box instead, since it isn't a prayer and has no reminder.
 
@@ -312,9 +314,9 @@ Setelan's own buttons are described under Setelan Siaga below.
 - **Internal Padding:** 16–18dp, with hairline dividers at 50–60% between items.
 
 ### Setelan Siaga (signature)
-Setelan answers one question first: will the adzan be on time? It continues the Kiblat carpet world: the carpet carries the verdict, ivory paper carries the controls.
+Setelan answers one question first: will the adzan be on time? It lives in a mosque-carpet world of its own: the carpet carries the verdict, ivory paper carries the controls.
 - **Palette:** the page is Carpet Paper (`#F6F1E7`; dark `#140C0D`) with Carpet Ink and Carpet Mute text (`Color.kt`). The accent is Carpet Red in light mode and Carpet Gold in dark mode (selected icons on gold use Carpet On Gold). Dividers are ink at 14%.
-- **Verdict hero:** full-width carpet (`carpetColor`, darkened in dark mode) with the prayer-arch motif in ivory at 14%, clipped to the hero. Headline 30sp/36 ExtraBold: "Adzan siap tepat waktu", or "{n} izin belum aktif" with n in gold. One line of reason in ivory 78%. Below, the three permissions (Notifikasi, Alarm tepat waktu, Baterai tanpa batas) as 52dp rows under ivory 18% hairlines: a 20dp check in ivory 70% and "Aktif" when granted; a gold error icon, a one-line hint and an ivory pill "Aktifkan" (carpet text) when missing.
+- **Verdict hero:** full-width carpet (`carpetColor`, darkened in dark mode) with the prayer-arch motif in ivory at 14%, clipped to the hero. Headline 30sp/36 ExtraBold: "Adzan siap tepat waktu", or "{n} izin belum aktif" with n in gold. One line of reason in ivory 78%. Below, the two permissions (Notifikasi, Alarm tepat waktu) as 52dp rows under ivory 18% hairlines: a 20dp check in ivory 70% and "Aktif" when granted; a gold error icon, a one-line hint and an ivory pill "Aktifkan" (carpet text) when missing.
 - **Section titles:** 20sp/28 bold ink, 24dp above, marked as headings. No uppercase overlines.
 - **Audio rows:** 64dp; a 40dp tile (accent at 12%, 10dp corners) with the icon (sunrise for Subuh, note for Dzuhur–Isya), the prayers it covers in 12sp Mute, the file name in 15sp semibold on one line, an optional 48dp restore button, and a "Ganti" text button in the accent.
 - **Volume:** the same tile, a Material slider in the accent, and the percentage in 15sp bold tabular. Two-way sync with the system alarm volume is unchanged.
@@ -345,15 +347,15 @@ A newer message replaces the one on screen. Messages without an action get a dis
 ### Navigation
 Material 3 navigation bar on a Paper surface with a hairline above. Selected items use a cypress icon and label (label bold) and a Cypress Mist indicator. Unselected items are Stone.
 
-### Kiblat Shaf (signature)
-The phone is a worshipper standing on a mosque carpet. The carpet turns with the Qibla bearing; the phone faces the Qibla when the prayer rows run straight across its own line, as the imam asks before salat ("luruskan shaf").
-- **Carpet:** Carpet Red, full bleed. Shaf lines every 56dp (2dp), one arch prayer-space per 48dp column with its base on the line (1.4dp stroke). A shaf line passes through the pivot, so when aligned the phone stands in a row.
-- **Ka'bah marker:** 250dp ahead of the pivot on the carpet's front axis: a 30dp Kaaba Black square with a gold band and outline, and a gold pointer above it. It rotates with the carpet, so it always sits in the Qibla direction.
-- **Phone line:** fixed horizontal 2dp line at 49% height with a 7dp dot and 12dp halo at the centre. It never rotates.
-- **Location pill:** "{kota} · Kiblat {bearing}°" on the darkened carpet, 36dp tall, fully round. Its screen-reader label adds the 16-point direction.
-- **Guidance:** bottom panel on a gradient. The degrees still to turn in 72sp ExtraBold tabular Roboto, then "Putar ke **kanan** sampai shaf lurus"; under a hairline, a 48dp row with "Arah HP {n}°" and "Δ {n,n}°". The degree and line are one polite live region.
-- **States:** within ±3° the shaf lines, phone line and big word turn Carpet Gold, the number becomes "Lurus" and the line "Shaf sudah lurus, menghadap kiblat". The phone gives a long-press haptic on lock.
-- **Motion:** the heading is unwrapped (never spins the long way past north) and follows a no-bounce, low-stiffness spring; the carpet is drawn in the draw phase only, so rotation never recomposes.
+### Kiblat Tongkat Istiwa (signature)
+The phone is an upright stick (tongkat istiwa) on Home's astrolabe plate. On Rashdul Kiblat the sun stands over the Ka'bah, so a stick's shadow lies on the Qibla line; here the plate turns with the Qibla bearing and the phone faces the Qibla when the stick's shadow falls straight down its own line.
+- **Sky:** the same time-of-day sky as Jadwal (`prayerSkyColors` in `PrayerSky.kt`), fading to the background by 300dp. Secondary text uses Sky Stone in light mode.
+- **Plate (turns):** rings every 28dp and hour lines every 15°, 1dp, in the sky's body colour at 25%, centred on the stick, visible from 46dp to 230dp and gone by 340dp. On it: a hairline Qibla axis in brass fading toward the stick, the Ka'bah 196dp ahead (an 18dp Kaaba Black square with a brass band and outline, wrapped in Home's sun halos: brass 18% at +7dp, 8% at +15dp), and the shadow, a 190dp tapering wedge from the stick in ink at 30% (20% dark) that fades out.
+- **Fixed:** the phone's line, a 1.5dp dashed (6/6) cypress line at 55%, from 76dp to 476dp below the status bar, with a 12x9dp front marker above it; the stick, a 16dp paper disc with a 2dp ink ring, a 6dp mark-colour centre and a 14dp halo at 18%.
+- **Header:** the location (15dp cypress pin, name in Label) on the left and "Kiblat {bearing}°" on the right in 12sp semibold tabular, whose screen-reader label adds the 16-point direction.
+- **Guidance:** the degrees still to turn in Display (80sp bold tabular, shrinking to 40sp), then "putar ke **kanan** sampai bayang tongkat lurus" in 15sp medium with the direction in bold cypress; 32dp below, under a hairline at 60%, a 48dp row with "Arah HP {n}°" and "Δ {n,n}°". The degree and line are one polite live region.
+- **States:** within ±3° the line turns solid brass, the front marker, halo and centre turn brass, the number becomes "Lurus" and the line "Bayangan lurus, menghadap kiblat" with a brass check. The phone gives a long-press haptic on lock.
+- **Motion:** the heading is unwrapped (never spins the long way past north) and follows a no-bounce, low-stiffness spring; the sky and body colours ease over 800ms; the plate is drawn in the draw phase only, so rotation never recomposes.
 
 ## Do's and Don'ts
 
@@ -371,7 +373,7 @@ The phone is a worshipper standing on a mosque carpet. The carpet turns with the
 - **Don't** enable Dynamic Color.
 - **Don't** add drop shadows beyond the next-prayer row's 2dp lift (The Flat Sanctuary Rule).
 - **Don't** fill large areas with gold, or use gold for anything other than moments, alignment, and the missing-permission warning.
-- **Don't** hard-code hex values in screens. Colours live in `Color.kt`, including the Kiblat carpet tokens.
+- **Don't** hard-code hex values in screens. Colours live in `Color.kt`, including the Setelan carpet tokens.
 - **Don't** reintroduce unused palettes in `Color.kt`. It holds only the tokens the two schemes use.
 - **Don't** hard-code a time-zone label or compass direction. Derive WIB/WITA/WIT from the device offset, and the direction from the bearing.
 - **Don't** stack uppercase overlines or use control-panel wording where a gentle label will do (The Overline Budget Rule).
