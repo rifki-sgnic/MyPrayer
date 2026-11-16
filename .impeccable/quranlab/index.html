@@ -11,13 +11,13 @@
   :root {
     --bg: #F6F4EF; --surface: #FFFFFF; --variant: #EDE9E0; --hair: #E2DDD2;
     --ink: #181816; --muted: #737067; --primary: #0F4C3A; --mist: #DDE6E3;
-    --brass: #C59B27; --sel: rgba(15, 76, 58, 0.05);
+    --brass: #C59B27; --sel: rgba(15, 76, 58, 0.05); --wash: rgba(197, 155, 39, 0.18);
     --quran: "Scheherazade New";
   }
   .dark {
     --bg: #0A0F0D; --surface: #121A16; --variant: #1A2620; --hair: #23332B;
     --ink: #F3F4F2; --muted: #8A9991; --primary: #34D399; --mist: #1C3329;
-    --brass: #EAB308; --sel: rgba(52, 211, 153, 0.06);
+    --brass: #EAB308; --sel: rgba(52, 211, 153, 0.06); --wash: rgba(234, 179, 8, 0.13);
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: #2b2b29; font-family: Roboto, sans-serif; }
@@ -41,6 +41,9 @@
   .bar.condensed .bar-title { opacity: 1; transform: none; }
   .bar-title b { display: block; font-size: 16px; font-weight: 600; line-height: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .bar-title span { display: block; font-size: 12px; line-height: 16px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .bar-title span i { font-style: normal; display: inline-block; }
+  .bar-title span i.tick { animation: tick .22s cubic-bezier(.16,1,.3,1); }
+  @keyframes tick { from { opacity: .3; transform: translateY(5px) } to { opacity: 1; transform: none } }
   .toggle { color: var(--muted); }
   .toggle[aria-pressed="true"] { color: var(--primary); background: var(--mist); }
   .progress { position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--hair); opacity: 0; transition: opacity .28s; }
@@ -63,8 +66,17 @@
     transition: background-color .2s; -webkit-tap-highlight-color: transparent; }
   .ayah.open { background: var(--sel); }
   .ayah:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
-  .resume { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; line-height: 16px; color: var(--brass); margin-bottom: 10px; }
-  .resume::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--brass); }
+  /* resume point: a brass mushaf ribbon hangs from the ayah's top hairline */
+  .ribbon { position: absolute; top: -1px; left: 20px; width: 10px; height: 30px; background: var(--brass);
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 76%, 0 100%); transform-origin: top; pointer-events: none; }
+  .resume { font-size: 12px; font-weight: 500; line-height: 16px; color: var(--muted); margin: 0 0 10px 18px; }
+  .ayah::after { content: ""; position: absolute; inset: 0; background: var(--wash); opacity: 0; pointer-events: none; }
+  .ayah.arrive::after { animation: wash 2.2s cubic-bezier(.16,1,.3,1) both; }
+  .ayah.arrive .ribbon { animation: unroll .7s cubic-bezier(.16,1,.3,1) .12s both; }
+  .ayah.arrive .resume { animation: settle .5s cubic-bezier(.16,1,.3,1) .3s both; }
+  @keyframes wash { 0% { opacity: 0 } 14% { opacity: 1 } 100% { opacity: 0 } }
+  @keyframes unroll { from { transform: scaleY(0) } to { transform: scaleY(1) } }
+  @keyframes settle { from { opacity: 0; transform: translateX(-6px) } to { opacity: 1; transform: none } }
   .ar-text { font-family: var(--quran), serif; font-size: 30px; line-height: 2.15; direction: rtl; text-align: right; color: var(--ink); }
   .end { color: var(--primary); white-space: nowrap; }
   .lat { margin: 14px 0 0; font-size: 15px; line-height: 23px; font-style: italic; color: var(--primary); }
@@ -80,6 +92,27 @@
   .act svg { width: 18px; height: 18px; }
   .act.on { background: var(--primary); color: var(--bg); border-color: var(--primary); }
 
+  .act svg.pop { animation: pop .34s cubic-bezier(.16,1,.3,1); }
+  @keyframes pop { 0% { transform: scale(.55) } 55% { transform: scale(1.18) } 100% { transform: scale(1) } }
+
+  /* "Lanjut ke ayat n": only while the resume ayah is still below the reader */
+  .jump { position: absolute; left: 50%; bottom: 96px; z-index: 3; height: 48px; padding: 0; border: 0; background: none; cursor: pointer;
+    transform: translate(-50%, 16px); opacity: 0; pointer-events: none;
+    transition: transform .18s cubic-bezier(.4,0,1,1), opacity .18s; }
+  .jump.show { transform: translate(-50%, 0); opacity: 1; pointer-events: auto;
+    transition: transform .32s cubic-bezier(.16,1,.3,1), opacity .24s; }
+  .jump span { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px 0 14px; border-radius: 9999px;
+    background: var(--surface); border: 1px solid var(--hair); color: var(--ink); font: 500 14px/20px Roboto, sans-serif;
+    font-variant-numeric: tabular-nums; white-space: nowrap; box-shadow: 0 2px 6px rgba(24,24,22,.10); }
+  .jump .rib { width: 8px; height: 14px; background: var(--brass); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 74%, 0 100%); }
+  .jump svg { width: 18px; height: 18px; color: var(--primary); }
+  .jump:focus-visible span { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ayah.arrive .ribbon, .ayah.arrive .resume, .bar-title span i.tick, .act svg.pop { animation: none; }
+    .jump, .jump.show { transform: translate(-50%, 0); }
+  }
+
   /* footer nav */
   .foot { border-top: 1px solid var(--hair); padding: 24px 20px 32px; display: flex; gap: 12px; }
   .nav-card { flex: 1; min-height: 64px; border-radius: 16px; border: 1px solid var(--hair); background: var(--surface); padding: 12px 14px;
@@ -94,6 +127,7 @@
   .panel h2 { font-size: 14px; margin: 0 0 12px; color: #fff; }
   .panel label { display: flex; align-items: center; gap: 8px; margin: 8px 0; cursor: pointer; }
   .panel select { font: inherit; }
+  .panel button { font: inherit; display: block; width: 100%; text-align: left; margin: 6px 0; padding: 8px 10px; border-radius: 8px; border: 1px solid #555; background: #353533; color: #eee; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -118,6 +152,7 @@
       <button class="nav-card next"><span style="flex:1"><small>Selanjutnya</small><b>68. Al-Qalam</b></span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg></button>
     </nav>
   </div>
+  <button class="jump" id="jump" aria-hidden="true" tabindex="-1"><span><i class="rib"></i><b style="font-weight:500" id="jumpText"></b><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg></span></button>
   <div class="navbar"></div>
 </div>
 
@@ -126,8 +161,11 @@
   <label><input type="checkbox" id="dark"> Dark scheme</label>
   <label>Quran font
     <select id="font"><option>Scheherazade New</option><option>Amiri Quran</option></select></label>
-  <p>Ketuk ayat untuk membuka tombol Simpan. Gulir melewati judul untuk melihat bar ringkas dan garis kemajuan.</p>
-  <p>Titik emas "Terakhir dibaca" menandai ayat tempat kamu lanjut membaca (disimpan otomatis saat berhenti menggulir).</p>
+  <p><b>Skenario</b></p>
+  <button id="scResume">Buka dari "Terakhir Dibaca" (ayat 12)</button>
+  <button id="scTop">Buka Al-Mulk dari daftar surah</button>
+  <p>Pita emas menandai ayat tempat kamu berhenti. Saat masuk, pita turun dan ayatnya menyala sebentar. Kalau kamu masih di atasnya, tombol "Lanjut ke ayat 12" muncul.</p>
+  <p>Bar atas menunjukkan ayat yang sedang dibaca; itu juga yang disimpan saat berhenti menggulir.</p>
 </div>
 
 <script src="data.js"></script>
@@ -138,13 +176,13 @@ const ICON_BM = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H7c-
 const ICON_BM_O = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2zm0 15-5-2.18L7 18V5h10v13z"/></svg>';
 const meta = `${S.meaning} · ${S.verses} ayat · ${S.type === 'Mekah' ? 'Makkiyah' : 'Madaniyah'}`;
 $('opAr').textContent = S.nameArabic; $('opName').textContent = S.nameLatin; $('opMeta').textContent = meta;
-$('barName').textContent = S.nameLatin; $('barMeta').textContent = `Surah ke-${S.number} · ${S.verses} ayat`;
+$('barName').textContent = S.nameLatin; $('barMeta').innerHTML = `Ayat <i id="cur">1</i> dari ${S.verses}`;
 
-let resumeAt = 3; const saved = new Set([7]);
+let resumeAt = 12; const saved = new Set([7]);
 function render() {
   $('ayahs').innerHTML = S.ayahs.map(a => `
-    <article class="ayah" tabindex="0" data-n="${a.n}" aria-expanded="false">
-      ${a.n === resumeAt ? '<div class="resume">Terakhir dibaca</div>' : ''}
+    <article class="ayah${a.n === resumeAt ? ' resume-pt' : ''}" tabindex="0" data-n="${a.n}" aria-expanded="false">
+      ${a.n === resumeAt ? '<i class="ribbon" aria-hidden="true"></i><div class="resume">Lanjut dari sini</div>' : ''}
       <div class="ar-text" lang="ar">${a.ar}<span class="end">&nbsp;&#x06DD;${indic(a.n)}</span></div>
       <p class="lat">${a.lat}</p>
       <p class="tr">${saved.has(a.n) ? `<span class="mark">${ICON_BM}</span>` : ''}<span class="n">${a.n}</span>${a.id}</p>
@@ -158,7 +196,7 @@ $('ayahs').addEventListener('click', e => {
   if (save) {
     const n = +save.dataset.save; saved.has(n) ? saved.delete(n) : saved.add(n);
     const art = save.closest('.ayah'); const open = art.classList.contains('open');
-    render(); if (open) { const el = $('ayahs').querySelector(`[data-n="${n}"]`); el.style.transition = 'none'; el.classList.add('open'); el.querySelector('.actions').style.transition = 'none'; requestAnimationFrame(() => { el.style.transition = ''; el.querySelector('.actions').style.transition = ''; }); }
+    render(); const nowSaved = saved.has(n); if (open) { const el = $('ayahs').querySelector(`[data-n="${n}"]`); el.style.transition = 'none'; el.classList.add('open'); el.querySelector('.actions').style.transition = 'none'; requestAnimationFrame(() => { el.style.transition = ''; el.querySelector('.actions').style.transition = ''; }); if (nowSaved) el.querySelector('.act svg').classList.add('pop'); }
     return;
   }
   const art = e.target.closest('.ayah'); if (!art || getSelection().toString()) return;
@@ -167,12 +205,35 @@ $('ayahs').addEventListener('click', e => {
 });
 
 const sc = $('scroll'), bar = $('bar');
-sc.addEventListener('scroll', () => {
-  const op = $('opening');
-  bar.classList.toggle('condensed', sc.scrollTop > op.querySelector('h1').offsetTop + 20);
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const resumeEl = () => $('ayahs').querySelector('.resume-pt');
+const topOf = el => el.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop;
+let cur = 1;
+function onScroll() {
+  bar.classList.toggle('condensed', sc.scrollTop > $('opening').querySelector('h1').offsetTop + 20);
   const max = sc.scrollHeight - sc.clientHeight;
   $('prog').style.width = (max > 0 ? sc.scrollTop / max * 100 : 0) + '%';
-}, { passive: true });
+  // same rule as the app's auto-save: first ayah whose middle is still on screen, or the last one at the end
+  const top = sc.getBoundingClientRect().top, list = [...$('ayahs').children];
+  const a = sc.scrollTop >= max - 1 ? list.at(-1) : list.find(x => { const r = x.getBoundingClientRect(); return r.top + r.height / 2 > top; });
+  const n = a ? +a.dataset.n : 1;
+  if (n !== cur) { cur = n; const i = $('cur'); i.textContent = n; i.classList.remove('tick'); void i.offsetWidth; i.classList.add('tick'); }
+  const r = resumeEl(), below = !!r && r.getBoundingClientRect().top > sc.getBoundingClientRect().bottom - 40;
+  $('jump').classList.toggle('show', below);
+  $('jump').setAttribute('aria-hidden', !below); $('jump').tabIndex = below ? 0 : -1;
+}
+sc.addEventListener('scroll', onScroll, { passive: true });
+function arrive(el) { el.classList.remove('arrive'); void el.offsetWidth; el.classList.add('arrive'); }
+function openResume() { const r = resumeEl(); sc.scrollTop = topOf(r) - 16; onScroll(); arrive(r); }
+function openTop() { sc.scrollTop = 0; onScroll(); }
+$('jumpText').textContent = `Lanjut ke ayat ${resumeAt}`;
+$('jump').onclick = () => {
+  const r = resumeEl(); sc.scrollTo({ top: topOf(r) - 16, behavior: reduce ? 'auto' : 'smooth' });
+  let fired = false; const done = () => { if (fired) return; fired = true; arrive(r); };
+  sc.addEventListener('scrollend', done, { once: true }); setTimeout(done, 900);
+};
+$('scResume').onclick = openResume; $('scTop').onclick = openTop;
+document.fonts.ready.then(openResume);
 
 $('latinBtn').onclick = () => {
   const on = $('latinBtn').getAttribute('aria-pressed') !== 'true';

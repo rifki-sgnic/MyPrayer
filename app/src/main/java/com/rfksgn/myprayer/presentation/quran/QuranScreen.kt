@@ -3,18 +3,25 @@ package com.rfksgn.myprayer.presentation.quran
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -27,6 +34,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.CloudDownload
@@ -40,8 +48,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.heading
@@ -58,6 +70,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
@@ -66,6 +79,8 @@ import com.rfksgn.myprayer.core.database.SurahEntity
 import com.rfksgn.myprayer.ui.theme.QuranFontFamily
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 
 private val CardShape22 = RoundedCornerShape(22.dp)
 private val CardShape20 = RoundedCornerShape(20.dp)
@@ -578,11 +593,21 @@ private fun SurahReaderView(
     // Locked when the surah opens, so the marker stays put while the reading position auto-saves
     val resumeAyah = remember(surah?.number) { lastReadAyahNumber }
     var openAyahId by remember(surah?.number) { mutableStateOf<Int?>(null) }
+    // Bumped each time the reader lands on the resume ayah, which replays its ribbon and glow
+    var arrival by remember(surah?.number) { mutableIntStateOf(0) }
+    val scope = rememberCoroutineScope()
+    // A strip of space above the landed ayah, so its hairline and ribbon aren't pressed under the bar
+    val landingGapPx = with(LocalDensity.current) { 16.dp.roundToPx() }
 
     // Item 0 is the surah opening, so ayah n sits at index n
     LaunchedEffect(surah?.number, initialScrollAyah, ayahs.isNotEmpty()) {
         if (ayahs.isNotEmpty() && !hasScrolledToInitial) {
-            listState.scrollToItem(if (initialScrollAyah > 1) initialScrollAyah.coerceAtMost(ayahs.size) else 0)
+            if (initialScrollAyah > 1) {
+                listState.scrollToItem(initialScrollAyah.coerceAtMost(ayahs.size), -landingGapPx)
+                if (initialScrollAyah == resumeAyah) arrival++
+            } else {
+                listState.scrollToItem(0)
+            }
             hasScrolledToInitial = true
         }
     }
@@ -596,15 +621,36 @@ private fun SurahReaderView(
             .drop(1)
             .filter { !it }
             .collect {
-                val info = listState.layoutInfo
-                val ayahItems = info.visibleItemsInfo.filter { it.key is Int }
-                val item = if (!listState.canScrollForward) {
-                    ayahItems.lastOrNull()
-                } else {
-                    ayahItems.firstOrNull { it.offset + it.size / 2 > info.viewportStartOffset }
-                }
+                val item = listState.readingItem()
                 currentAyahs.find { it.id == item?.key }?.let { currentOnMarkLastRead(it.ayahNumber) }
             }
+    }
+
+    // The ayah the bar reports, which is also the one the auto-save stores
+    val readingAyah by remember { derivedStateOf { listState.readingItem()?.index ?: 1 } }
+    // The number ticks up on the layer only, so a fast fling costs no extra compositions
+    val numberTick = remember { Animatable(1f) }
+    LaunchedEffect(readingAyah) {
+        numberTick.snapTo(0f)
+        numberTick.animateTo(1f, tween(220, easing = EaseOutExpo))
+    }
+
+    // Jump-to-resume transition, applied to the list's layer
+    val pageAlpha = remember { Animatable(1f) }
+    val pageRise = remember { Animatable(0f) }
+    val risePx = with(LocalDensity.current) { 28.dp.toPx() }
+    var jumping by remember { mutableStateOf(false) }
+
+    // Offer the way back only while the resume ayah is still ahead of (below) the reader
+    val peekPx = with(LocalDensity.current) { 40.dp.toPx() }
+    val resumeAhead by remember(resumeAyah, peekPx) {
+        derivedStateOf {
+            if (!hasScrolledToInitial || resumeAyah <= 1 || resumeAyah > currentAyahs.size) return@derivedStateOf false
+            val info = listState.layoutInfo
+            val last = info.visibleItemsInfo.lastOrNull() ?: return@derivedStateOf false
+            val item = info.visibleItemsInfo.firstOrNull { it.index == resumeAyah }
+            if (item != null) item.offset > info.viewportEndOffset - peekPx else last.index < resumeAyah
+        }
     }
 
     val condenseAfterPx = with(LocalDensity.current) { 104.dp.toPx() }
@@ -674,11 +720,21 @@ private fun SurahReaderView(
                         overflow = TextOverflow.Ellipsis
                     )
                     if (surah != null) {
-                        Text(
-                            text = "Surah ke-${surah.number} · ${surah.versesCount} ayat",
-                            style = ReaderMetaTextStyle.copy(fontSize = 12.sp, lineHeight = 16.sp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        val metaStyle = ReaderMetaTextStyle.copy(fontSize = 12.sp, lineHeight = 16.sp)
+                        val metaColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = "Ayat ", style = metaStyle, color = metaColor)
+                            Text(
+                                text = "$readingAyah",
+                                style = metaStyle,
+                                color = metaColor,
+                                modifier = Modifier.graphicsLayer {
+                                    alpha = 0.3f + 0.7f * numberTick.value
+                                    translationY = (1f - numberTick.value) * 5.dp.toPx()
+                                }
+                            )
+                            Text(text = " dari ${surah.versesCount}", style = metaStyle, color = metaColor)
+                        }
                     }
                 }
             }
@@ -723,10 +779,15 @@ private fun SurahReaderView(
                     }
                 }
             }
-        } else {
+        } else Box(modifier = Modifier.fillMaxSize()) {
             LazyColumn(
                 state = listState,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        alpha = pageAlpha.value
+                        translationY = pageRise.value
+                    }
             ) {
                 item(key = "surah_opening", contentType = "opening") {
                     SurahOpening(
@@ -745,6 +806,7 @@ private fun SurahReaderView(
                         ayah = ayah,
                         showLatin = showLatin,
                         isResumePoint = ayah.ayahNumber == resumeAyah && resumeAyah > 1,
+                        arrival = if (ayah.ayahNumber == resumeAyah) arrival else 0,
                         isOpen = openAyahId == ayah.id,
                         onClick = { openAyahId = if (openAyahId == ayah.id) null else ayah.id },
                         onToggleBookmark = { onToggleBookmark(ayah) }
@@ -761,6 +823,104 @@ private fun SurahReaderView(
                     }
                 }
             }
+
+            androidx.compose.animation.AnimatedVisibility(
+                visible = resumeAhead,
+                enter = slideInVertically(tween(320, easing = EaseOutExpo)) { it / 2 } + fadeIn(tween(240)),
+                exit = slideOutVertically(tween(180)) { it / 2 } + fadeOut(tween(180)),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp)
+            ) {
+                ResumeJumpPill(
+                    ayahNumber = resumeAyah,
+                    onClick = {
+                        if (jumping) return@ResumeJumpPill
+                        jumping = true
+                        scope.launch {
+                            try {
+                                if (listState.layoutInfo.visibleItemsInfo.any { it.index == resumeAyah }) {
+                                    // Already in view: a short glide composes nothing new
+                                    listState.animateScrollToItem(resumeAyah, -landingGapPx)
+                                    arrival++
+                                } else {
+                                    // Far: scrolling through would compose and shape every ayah in between.
+                                    // Fade the page out, cut there in one layout pass, then let it rise in on the layer.
+                                    pageAlpha.animateTo(0f, tween(100, easing = LinearEasing))
+                                    listState.scrollToItem(resumeAyah, -landingGapPx)
+                                    pageRise.snapTo(risePx)
+                                    arrival++
+                                    coroutineScope {
+                                        launch { pageAlpha.animateTo(1f, tween(240, easing = EaseOutExpo)) }
+                                        launch { pageRise.animateTo(0f, tween(420, easing = EaseOutExpo)) }
+                                    }
+                                }
+                            } finally {
+                                jumping = false
+                            }
+                        }
+                    }
+                )
+            }
+        }
+    }
+}
+
+// The ayah being read: the first whose middle is still on screen, or the last one at the end of the surah
+private fun LazyListState.readingItem(): LazyListItemInfo? {
+    val info = layoutInfo
+    val ayahItems = info.visibleItemsInfo.filter { it.key is Int }
+    return if (!canScrollForward) {
+        ayahItems.lastOrNull()
+    } else {
+        ayahItems.firstOrNull { it.offset + it.size / 2 > info.viewportStartOffset }
+    }
+}
+
+// A mushaf ribbon: a strip with a notched tail
+private fun DrawScope.drawRibbon(color: Color, left: Float, width: Float, height: Float, notch: Float) {
+    val path = Path().apply {
+        moveTo(left, 0f)
+        lineTo(left + width, 0f)
+        lineTo(left + width, height)
+        lineTo(left + width / 2, height * notch)
+        lineTo(left, height)
+        close()
+    }
+    drawPath(path, color)
+}
+
+@Composable
+private fun ResumeJumpPill(ayahNumber: Int, onClick: () -> Unit) {
+    val brass = MaterialTheme.colorScheme.secondary
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        shadowElevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .height(40.dp)
+                .padding(start = 14.dp, end = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Canvas(modifier = Modifier.size(width = 8.dp, height = 14.dp)) {
+                drawRibbon(brass, 0f, size.width, size.height, 0.74f)
+            }
+            Text(
+                text = "Lanjut ke ayat $ayahNumber",
+                style = MaterialTheme.typography.labelLarge.copy(fontFeatureSettings = "tnum"),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Icon(
+                imageVector = Icons.Default.ArrowDownward,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp)
+            )
         }
     }
 }
@@ -833,12 +993,44 @@ private fun AyahBlock(
     ayah: AyahEntity,
     showLatin: Boolean,
     isResumePoint: Boolean,
+    arrival: Int,
     isOpen: Boolean,
     onClick: () -> Unit,
     onToggleBookmark: () -> Unit
 ) {
     val primary = MaterialTheme.colorScheme.primary
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val brass = MaterialTheme.colorScheme.secondary
+
+    // Arrival at the resume ayah: the ribbon unrolls from the hairline, the label settles, the ayah glows once
+    val ribbon = remember { Animatable(1f) }
+    val label = remember { Animatable(1f) }
+    val wash = remember { Animatable(0f) }
+    LaunchedEffect(arrival) {
+        if (!isResumePoint || arrival == 0) return@LaunchedEffect
+        ribbon.snapTo(0f)
+        label.snapTo(0f)
+        launch {
+            wash.animateTo(1f, tween(300, easing = EaseOutExpo))
+            wash.animateTo(0f, tween(1900, easing = EaseOutExpo))
+        }
+        launch { ribbon.animateTo(1f, tween(700, delayMillis = 120, easing = EaseOutExpo)) }
+        launch { label.animateTo(1f, tween(500, delayMillis = 300, easing = EaseOutExpo)) }
+    }
+
+    // A small pop on the bookmark icon when the ayah is saved here, not when it was already saved
+    val pop = remember { Animatable(1f) }
+    var wasBookmarked by remember { mutableStateOf(ayah.isBookmarked) }
+    LaunchedEffect(ayah.isBookmarked) {
+        if (ayah.isBookmarked && !wasBookmarked) {
+            pop.snapTo(0.55f)
+            pop.animateTo(1f, keyframes {
+                durationMillis = 340
+                1.18f at 187 using EaseOutExpo
+            })
+        }
+        wasBookmarked = ayah.isBookmarked
+    }
     val selectedTint by animateColorAsState(
         targetValue = if (isOpen) primary.copy(alpha = 0.05f) else Color.Transparent,
         label = "ayahSelected"
@@ -868,12 +1060,28 @@ private fun AyahBlock(
         }
     }
 
-    Column(modifier = Modifier.fillMaxWidth()) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .drawWithContent {
+                drawContent()
+                if (!isResumePoint) return@drawWithContent
+                // Hangs from the top hairline, 20dp in from the start edge
+                val w = 10.dp.toPx()
+                val left = if (layoutDirection == LayoutDirection.Rtl) size.width - 20.dp.toPx() - w else 20.dp.toPx()
+                scale(scaleX = 1f, scaleY = ribbon.value, pivot = Offset(left, 0f)) {
+                    drawRibbon(brass, left, w, 30.dp.toPx(), 0.76f)
+                }
+            }
+    ) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .drawBehind { drawRect(selectedTint) }
+                .drawBehind {
+                    drawRect(selectedTint)
+                    if (wash.value > 0f) drawRect(brass.copy(alpha = 0.16f * wash.value))
+                }
                 .clickable(
                     onClickLabel = if (isOpen) "Tutup pilihan ayat" else "Tampilkan pilihan ayat",
                     onClick = onClick
@@ -881,23 +1089,17 @@ private fun AyahBlock(
                 .padding(start = 20.dp, end = 20.dp, top = 22.dp, bottom = 20.dp)
         ) {
             if (isResumePoint) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.padding(bottom = 10.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.secondary)
-                    )
-                    Text(
-                        text = "Terakhir dibaca",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = muted
-                    )
-                }
+                Text(
+                    text = "Lanjut dari sini",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = muted,
+                    modifier = Modifier
+                        .padding(start = 18.dp, bottom = 10.dp)
+                        .graphicsLayer {
+                            alpha = label.value
+                            translationX = (1f - label.value) * -6.dp.toPx()
+                        }
+                )
             }
 
             Text(
@@ -937,7 +1139,16 @@ private fun AyahBlock(
                 ) {
                     if (ayah.isBookmarked) {
                         Button(onClick = onToggleBookmark, shape = RoundedCornerShape(10.dp)) {
-                            Icon(Icons.Default.Bookmark, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(
+                                Icons.Default.Bookmark,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .graphicsLayer {
+                                        scaleX = pop.value
+                                        scaleY = pop.value
+                                    }
+                            )
                             Spacer(Modifier.width(8.dp))
                             Text("Tersimpan")
                         }
