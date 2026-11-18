@@ -36,7 +36,9 @@ class LocationTracker(private val context: Context) {
 
     private fun getCityName(lat: Double, lng: Double): String {
         return try {
-            val geocoder = Geocoder(context, Locale("id", "ID"))
+            val geocoder = Geocoder(context, Locale.forLanguageTag("id-ID"))
+            // Async overload is API 33+ only; minSdk is 26
+            @Suppress("DEPRECATION")
             val addresses = geocoder.getFromLocation(lat, lng, 1)
             if (!addresses.isNullOrEmpty()) {
                 val subAdmin = addresses[0].subAdminArea // Kota/Kabupaten

@@ -274,7 +274,9 @@ class MainActivity : ComponentActivity() {
                                 qiblaDirection = (uiState.schedule?.qiblaDirection
                                     ?: 295.1).toFloat(),
                                 locationName = uiState.locationName,
-                                modifier = Modifier.padding(innerPadding)
+                                nextPrayerName = uiState.schedule?.nextPrayerName.orEmpty(),
+                                // Like Home, the sky runs under the status bar and the screen pads the top itself
+                                modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
                             )
                         }
 

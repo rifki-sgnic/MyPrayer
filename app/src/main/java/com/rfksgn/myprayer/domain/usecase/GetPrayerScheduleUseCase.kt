@@ -56,7 +56,7 @@ class GetPrayerScheduleUseCase {
             "Subuh" to tomorrowPrayers.fajr
         }
 
-        val dateFormatters = DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", Locale("id", "ID"))
+        val dateFormatters = DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", Locale.forLanguageTag("id-ID"))
 
         return PrayerSchedule(
             dateFormatted = date.format(dateFormatters),

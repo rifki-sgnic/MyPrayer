@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -117,17 +118,25 @@ fun HomeScreen(
         if (baseScheme.background.luminance() > 0.5f) baseScheme.copy(onSurfaceVariant = SkyStone) else baseScheme
     }
     MaterialTheme(colorScheme = skyScheme) {
+      // The page fits the screen and does not scroll; scrolling only switches on when it cannot fit
+      // (large font scale, a short screen, or the first-run location card).
+      BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val viewportHeight = maxHeight
+        val scrollState = rememberScrollState()
         Column(
-            modifier = modifier
+            modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState, enabled = scrollState.maxValue > 0)
                 // After the scroll so the sky and astrolabe plate scroll with the content
                 .prayerSky(schedule.nextPrayerName)
+                .heightIn(min = viewportHeight)
                 // The sky runs under the status bar; content starts below it
                 .statusBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 12.dp),
+            // Two blocks: the hero at the top, the schedule at the bottom; spare height on tall screens opens between them
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
+          Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             // 1. HEADER: the location pill wraps under the date when both don't fit
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
@@ -180,9 +189,13 @@ fun HomeScreen(
                 activeReminders = activeReminders,
                 onFixReadiness = onOpenSettings
             )
+          }
 
             // 3. SCHEDULE
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                modifier = Modifier.padding(top = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -208,7 +221,7 @@ fun HomeScreen(
                     )
                 }
 
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     prayers.forEach { item ->
                         val isNext = item.name == schedule.nextPrayerName
                         val isPassed = isPrayerPassed(item.time, currentTime, isNext)
@@ -227,6 +240,7 @@ fun HomeScreen(
                 }
             }
         }
+      }
     }
 }
 
@@ -373,8 +387,8 @@ private fun NextPrayerBlock(
         // Name, time and countdown read as one group ("Isya, pukul 19:12 WIB, 00:24:30 lagi")
         Column(
             modifier = Modifier
-                // 44dp of air above the name: the screen's 20dp gap plus 24dp
-                .padding(top = 24.dp, bottom = 32.dp)
+                // 24dp of air above the name: the 16dp gap below the header plus 8dp
+                .padding(top = 8.dp, bottom = 16.dp)
                 .semantics(mergeDescendants = true) {},
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
@@ -457,7 +471,6 @@ private fun ReminderStatus(
 ) {
     val problem = when {
         readiness == null -> null
-        readiness.mayBeLate -> "Adzan bisa terlambat"
         !readiness.notifications -> "Notifikasi adzan belum aktif"
         else -> null
     }
@@ -554,8 +567,8 @@ private fun PrayerTimelineItem(
                 .padding(
                     start = 18.dp,
                     end = 4.dp,
-                    top = if (isNext) 8.dp else 4.dp,
-                    bottom = if (isNext) 8.dp else 4.dp
+                    top = if (isNext) 6.dp else 2.dp,
+                    bottom = if (isNext) 6.dp else 2.dp
                 ),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
