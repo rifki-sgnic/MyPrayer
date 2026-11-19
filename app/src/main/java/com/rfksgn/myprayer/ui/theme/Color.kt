@@ -38,7 +38,7 @@ val QuranNightError = Color(0xFFE8A08F)       // Mawar hangat, juga dipakai skem
 val QuranNightOnError = Color(0xFF3A1510)
 val QuranNightJade = Color(0xFF7FC8A6)        // Jade yang diredam
 val QuranNightAmber = Color(0xFFD9B45A)       // Penanda akhir ayat & pita
-val QuranNightMist = Color(0xFF2A2920)
+val QuranNightMist = Color(0xFF3A3729)        // Pilihan terpilih: cukup terang agar terlihat di atas permukaan
 val QuranNightContainer = Color(0xFF1E2A23)
 
 // Kiblat — Shaf: karpet masjid dengan garis shaf. Hanya dipakai layar Kiblat.

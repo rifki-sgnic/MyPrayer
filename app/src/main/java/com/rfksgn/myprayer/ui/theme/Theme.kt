@@ -5,8 +5,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.material3.ColorScheme
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 
 // Every role a component reads is set here; unset roles fall back to Material's baseline purple.
 private val DarkColorScheme = darkColorScheme(
@@ -98,19 +101,46 @@ private val QuranNightColorScheme = DarkColorScheme.copy(
     outlineVariant = QuranNightBorder
 )
 
+private val QuranDayColorScheme = LightColorScheme.copy(tertiary = CypressPrimary)
+
 /**
- * The Quran tab's palette. `tertiary` is the ayah-end medallion and surah-name colour:
- * cypress in light mode, amber in the warm night scheme.
+ * The Quran tab's palette: Malam Hangat at night, the light scheme by day, whatever the system theme.
+ * `tertiary` is the ayah-end medallion and surah-name colour: cypress by day, amber at night.
  */
+fun quranColorScheme(night: Boolean): ColorScheme = if (night) QuranNightColorScheme else QuranDayColorScheme
+
+/** Reader colours that have no Material role. Set by [QuranTheme]; screens read them, never branch on the scheme. */
+@Immutable
+data class QuranReadingColors(
+    val latin: Color,      // transliteration line
+    val openFill: Color,   // background of the ayah whose actions are open
+    val pillEdge: Color    // edge of the "Lanjut ke ayat" pill
+)
+
+private val QuranDayReadingColors = QuranReadingColors(
+    latin = CypressPrimary,
+    openFill = CypressPrimary.copy(alpha = 0.05f),
+    pillEdge = LightBorder
+)
+
+// Warm ivory, not jade, for the Latin line, so the translation still reads first; the shadow can't show on near-black, so the pill's edge carries it
+private val QuranNightReadingColors = QuranReadingColors(
+    latin = QuranNightLatin,
+    openFill = QuranNightInk.copy(alpha = 0.06f),
+    pillEdge = QuranNightInk.copy(alpha = 0.18f)
+)
+
+val LocalQuranReadingColors = staticCompositionLocalOf { QuranDayReadingColors }
+
 @Composable
-fun QuranTheme(content: @Composable () -> Unit) {
-    val base = MaterialTheme.colorScheme
-    val dark = base.background.luminance() < 0.5f
-    MaterialTheme(
-        colorScheme = if (dark) QuranNightColorScheme else base.copy(tertiary = base.primary),
-        typography = MaterialTheme.typography,
-        content = content
-    )
+fun QuranTheme(night: Boolean, content: @Composable () -> Unit) {
+    CompositionLocalProvider(LocalQuranReadingColors provides if (night) QuranNightReadingColors else QuranDayReadingColors) {
+        MaterialTheme(
+            colorScheme = quranColorScheme(night),
+            typography = MaterialTheme.typography,
+            content = content
+        )
+    }
 }
 
 /**

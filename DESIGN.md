@@ -33,6 +33,18 @@ colors:
   carpet-ivory: "#F2E3C6"
   carpet-gold: "#E0B04A"
   kaaba-black: "#141413"
+  quran-night-bg: "#10110D"
+  quran-night-surface: "#181914"
+  quran-night-variant: "#24211A"
+  quran-night-border: "#2C2A23"
+  quran-night-ink: "#E9E2D0"
+  quran-night-muted: "#9A927E"
+  quran-night-latin: "#B5AC96"
+  quran-night-jade: "#7FC8A6"
+  quran-night-amber: "#D9B45A"
+  quran-night-mist: "#3A3729"
+  quran-night-container: "#1E2A23"
+  quran-night-error: "#E8A08F"
 typography:
   display:
     fontFamily: "Roboto, sans-serif"
@@ -214,6 +226,19 @@ Setelan has its own carpet colours, defined in `Color.kt` and used nowhere else.
 
 Kiblat uses the main palette and the time-of-day sky; Brass Gold marks the Ka'bah and the aligned state.
 
+### Quran Malam Hangat
+The Quran tab has a night scheme of its own: a warm, low-glare page, like reading a mushaf by lamplight. It replaces Obsidian Night only on the Quran tab and its navigation bar. Tokens live in `Color.kt` (`QuranNight*`); `QuranTheme` in `Theme.kt` applies them.
+- **Surfaces:** Warm Black (`quran-night-bg`) page, `quran-night-surface` cards and nav bar, `quran-night-border` hairlines and ayah dividers. Warm, never green-black.
+- **Text:** Ivory (`quran-night-ink`) for Arabic and titles, ivory at 88% for the translation, Warm Latin (`quran-night-latin`) for the italic transliteration, `quran-night-muted` for meta. Ivory, not white: pure white blooms on OLED in a dark room.
+- **Amber** (`quran-night-amber`): the ayah-end medallion, the surah's Arabic name and the resume ribbon. Nothing else.
+- **Jade** (`quran-night-jade`): interactive state only (Simpan ayat, the progress line, selected controls). Never text that is read.
+- **Error** (`quran-night-error`, warm rose, with `#3A1510` on it): load errors. The same value is the app's dark `error` role.
+- **Reading order:** Arabic (14.6:1), then translation (11.5:1), then Latin (8.4:1). Latin must never be the most colourful text on the page.
+
+**When it shows.** The reader picks it in the Tampilan sheet: *Otomatis* (default) is night from Isya to Subuh and whenever the phone is in dark mode; *Malam* and *Terang* force one or the other. By day the tab uses the light scheme, with cypress for the medallion. The status and navigation bar icons follow the page, not the system theme.
+
+**Reader colours without a Material role** (Latin line, open-ayah fill at ink 6%, jump-pill edge at ink 18%) come from `LocalQuranReadingColors`. Screens read them; they never branch on the scheme.
+
 ### Named Rules
 **The Brand Palette Rule.** MyPrayer always renders its own palette. Dynamic Color (Material You) is not supported on any Android version; `MyPrayerTheme` takes no `dynamicColor` parameter.
 
@@ -265,7 +290,7 @@ A single column on phones. Jadwal fits one screen and does not scroll: it is two
 
 The Kiblat screen is not scrolled. Like Jadwal, its sky runs under the status bar. The header row sits at the 20dp gutter below the status bar, the stick stands 286dp below the status bar (raised on short screens so its shadow clears the panel), and the guidance panel sits on a fade at the bottom.
 
-Navigation is a three-item Material navigation bar (Jadwal, Kiblat, Setelan) with a 1dp hairline above it and no tonal elevation. There is no tablet or landscape adaptation yet. A navigation rail on expanded widths is the expected path when that is needed.
+Navigation is a four-item Material navigation bar (Jadwal, Kiblat, Al-Quran, Setelan) with a 1dp hairline above it and no tonal elevation. There is no tablet or landscape adaptation yet. A navigation rail on expanded widths is the expected path when that is needed.
 
 ## Elevation & Depth
 
@@ -346,6 +371,14 @@ A newer message replaces the one on screen. Messages without an action get a dis
 
 ### Navigation
 Material 3 navigation bar on a Paper surface with a hairline above. Selected items use a cypress icon and label (label bold) and a Cypress Mist indicator. Unselected items are Stone.
+
+### Quran Reader (signature)
+A quiet reading column on the page background, no cards. A compact bar (back, then the surah name and "Ayat {n} dari {total}" once the opening scrolls away, then a "Tampilan bacaan" button) with a 2dp progress line in primary along its hairline.
+- **Opening:** the surah's Arabic name in `tertiary` (cypress by day, amber at night), the Latin name as a heading, meta in muted, then the basmalah under a hairline.
+- **Ayah:** Arabic in the Quran font at the reader's size (26/30/34/38sp, default 30; line height 2.15em) ending in the ۝ medallion with Arabic-Indic digits in `tertiary`; the italic Latin line; the translation led by its number in muted semibold tabular figures. Ayahs are separated by hairlines. Tapping an ayah opens it (fill from `LocalQuranReadingColors`) and reveals "Simpan ayat".
+- **Resume:** a brass ribbon hangs from the resume ayah's hairline with "Lanjut dari sini"; on arrival it unrolls and the ayah glows once. While that ayah is below the reader, a "Lanjut ke ayat {n}" pill floats above the bottom edge. It steps aside while an ayah is open, so it never covers the save button.
+- **Tampilan sheet:** a Material bottom sheet titled "Tampilan bacaan": a "Teks Latin" switch, "Ukuran huruf Arab" as four segments that preview the size with a growing ع, and "Mode baca" (Otomatis, Malam, Terang) with one line explaining the choice. All three persist in `QuranPreferences`.
+- **Navigation bar:** takes the Quran palette on this tab; its surface and hairline fade over 200ms when switching tabs.
 
 ### Kiblat Tongkat Istiwa (signature)
 The phone is an upright stick (tongkat istiwa) on Home's astrolabe plate. On Rashdul Kiblat the sun stands over the Ka'bah, so a stick's shadow lies on the Qibla line; here the plate turns with the Qibla bearing and the phone faces the Qibla when the stick's shadow falls straight down its own line.

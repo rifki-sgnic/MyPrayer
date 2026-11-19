@@ -62,6 +62,14 @@ import com.rfksgn.myprayer.presentation.quran.QuranViewModel
 import com.rfksgn.myprayer.presentation.settings.SettingsScreen
 import com.rfksgn.myprayer.ui.theme.MyPrayerTheme
 import com.rfksgn.myprayer.ui.theme.QuranTheme
+import com.rfksgn.myprayer.ui.theme.quranColorScheme
+import com.rfksgn.myprayer.data.local.QuranReadingMode
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -110,6 +118,24 @@ class MainActivity : ComponentActivity() {
                 // State tab aktif (0 = Jadwal, 1 = Kiblat, 2 = Al-Quran, 3 = Setelan)
                 var selectedTab by rememberSaveable { mutableIntStateOf(0) }
 
+                // Quran night: the reader's own choice, or automatic from Isya to Subuh (the schedule's next prayer is
+                // Subuh exactly in that window) and whenever the phone is in dark mode
+                val systemDark = isSystemInDarkTheme()
+                val quranNight = when (quranUiState.readingMode) {
+                    QuranReadingMode.NIGHT -> true
+                    QuranReadingMode.LIGHT -> false
+                    QuranReadingMode.AUTO -> systemDark || uiState.schedule?.nextPrayerName == "Subuh"
+                }
+                // The Quran tab can be dark on a light phone (or the reverse), so the system bar icons follow the page
+                val darkPage = if (selectedTab == 2) quranNight else systemDark
+                val view = LocalView.current
+                SideEffect {
+                    WindowCompat.getInsetsController(window, view).apply {
+                        isAppearanceLightStatusBars = !darkPage
+                        isAppearanceLightNavigationBars = !darkPage
+                    }
+                }
+
                 val permissionLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.RequestMultiplePermissions()
                 ) { permissions ->
@@ -140,14 +166,18 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     snackbarHost = { SnackbarHost(snackbarHostState) },
                     bottomBar = {
-                        // On the Quran tab the bar takes Quran's palette, so it matches the warm night page
-                        val bar: @Composable () -> Unit = { Column {
+                        // On the Quran tab the bar takes Quran's palette, so it matches the page; surface and hairline fade
+                        val appScheme = MaterialTheme.colorScheme
+                        MaterialTheme(colorScheme = if (selectedTab == 2) quranColorScheme(quranNight) else appScheme) {
+                        val barSurface by animateColorAsState(MaterialTheme.colorScheme.surface, tween(200), label = "navSurface")
+                        val barLine by animateColorAsState(MaterialTheme.colorScheme.outline, tween(200), label = "navLine")
+                        Column {
                             HorizontalDivider(
                                 thickness = 1.dp,
-                                color = MaterialTheme.colorScheme.outline
+                                color = barLine
                             )
                             NavigationBar(
-                                containerColor = MaterialTheme.colorScheme.surface,
+                                containerColor = barSurface,
                                 tonalElevation = 0.dp
                             ) {
                                 NavigationBarItem(
@@ -243,8 +273,8 @@ class MainActivity : ComponentActivity() {
                                     )
                                 )
                             }
-                        } }
-                        if (selectedTab == 2) QuranTheme(bar) else bar()
+                        }
+                        }
                     }
                 ) { innerPadding ->
                     when (selectedTab) {
@@ -287,7 +317,7 @@ class MainActivity : ComponentActivity() {
                         }
 
                         // Quran keeps its own night palette; the box paints it under the status bar too
-                        2 -> QuranTheme { Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) { QuranScreen(
+                        2 -> QuranTheme(night = quranNight) { Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) { QuranScreen(
                             uiState = quranUiState,
                             onSearchQueryChange = quranViewModel::onSearchQueryChange,
                             onTabSelected = quranViewModel::onTabSelected,
@@ -306,6 +336,8 @@ class MainActivity : ComponentActivity() {
                                 )
                             },
                             onToggleShowLatin = quranViewModel::toggleShowLatin,
+                            onSetReadingMode = quranViewModel::setReadingMode,
+                            onSetArabicSize = quranViewModel::setArabicSize,
                             onDownloadFullQuran = quranViewModel::downloadAll30JuzOffline,
                             modifier = Modifier.padding(innerPadding)
                         ) } }

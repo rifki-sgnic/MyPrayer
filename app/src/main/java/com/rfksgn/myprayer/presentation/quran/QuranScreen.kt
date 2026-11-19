@@ -41,7 +41,7 @@ import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.HistoryEdu
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -52,11 +52,22 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalFontFamilyResolver
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.window.DialogWindowProvider
+import androidx.core.view.WindowCompat
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.Placeholder
@@ -78,7 +89,9 @@ import androidx.compose.ui.unit.sp
 import com.rfksgn.myprayer.core.database.AyahEntity
 import com.rfksgn.myprayer.core.database.SurahEntity
 import com.rfksgn.myprayer.ui.theme.QuranFontFamily
-import com.rfksgn.myprayer.ui.theme.QuranNightLatin
+import com.rfksgn.myprayer.data.local.QuranArabicSizes
+import com.rfksgn.myprayer.data.local.QuranReadingMode
+import com.rfksgn.myprayer.ui.theme.LocalQuranReadingColors
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.coroutineScope
@@ -157,6 +170,8 @@ fun QuranScreen(
     onToggleBookmark: (AyahEntity) -> Unit,
     onMarkLastRead: (SurahEntity, Int) -> Unit,
     onToggleShowLatin: () -> Unit,
+    onSetReadingMode: (QuranReadingMode) -> Unit,
+    onSetArabicSize: (Int) -> Unit,
     onDownloadFullQuran: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -183,12 +198,16 @@ fun QuranScreen(
                 uiState.lastRead.ayahNumber
             } else -1,
             showLatin = uiState.showLatin,
+            readingMode = uiState.readingMode,
+            arabicSize = uiState.arabicSize,
             isLoading = uiState.isLoadingSurah,
             errorMessage = uiState.surahLoadError,
             onBackClick = onCloseSurah,
             onRetry = { onOpenSurah(currentNum, uiState.initialScrollAyah) },
             onNavigateSurah = { targetSurahNumber -> onOpenSurah(targetSurahNumber, 1) },
             onToggleShowLatin = onToggleShowLatin,
+            onSetReadingMode = onSetReadingMode,
+            onSetArabicSize = onSetArabicSize,
             onToggleBookmark = onToggleBookmark,
             onMarkLastRead = { ayahNum ->
                 val surah = uiState.activeSurah
@@ -580,17 +599,25 @@ private fun SurahReaderView(
     initialScrollAyah: Int,
     lastReadAyahNumber: Int,
     showLatin: Boolean,
+    readingMode: QuranReadingMode,
+    arabicSize: Int,
     isLoading: Boolean,
     errorMessage: String?,
     onBackClick: () -> Unit,
     onRetry: () -> Unit,
     onNavigateSurah: (Int) -> Unit,
     onToggleShowLatin: () -> Unit,
+    onSetReadingMode: (QuranReadingMode) -> Unit,
+    onSetArabicSize: (Int) -> Unit,
     onToggleBookmark: (AyahEntity) -> Unit,
     onMarkLastRead: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
+    var showSettings by remember { mutableStateOf(false) }
+    val arabicSp = QuranArabicSizes[arabicSize]
+    val arabicStyle = remember(arabicSp) { ArabicAyahTextStyle.copy(fontSize = arabicSp.sp) }
+    val basmalahStyle = remember(arabicSp) { BasmalahTextStyle.copy(fontSize = (arabicSp - 3).sp) }
     var hasScrolledToInitial by remember(surah?.number, initialScrollAyah) { mutableStateOf(false) }
     // Locked when the surah opens, so the marker stays put while the reading position auto-saves
     val resumeAyah = remember(surah?.number) { lastReadAyahNumber }
@@ -741,18 +768,26 @@ private fun SurahReaderView(
                 }
             }
 
-            IconToggleButton(
-                checked = showLatin,
-                onCheckedChange = { onToggleShowLatin() },
-                colors = IconButtonDefaults.iconToggleButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    checkedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    checkedContentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                ),
-                modifier = Modifier.align(Alignment.CenterEnd)
-            ) {
-                Icon(imageVector = Icons.Default.Translate, contentDescription = "Teks Latin")
+            // Latin, Arabic size and night mode live together in one labelled sheet
+            IconButton(onClick = { showSettings = true }, modifier = Modifier.align(Alignment.CenterEnd)) {
+                Icon(
+                    imageVector = Icons.Default.FormatSize,
+                    contentDescription = "Tampilan bacaan",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
+        }
+
+        if (showSettings) {
+            ReadingSettingsSheet(
+                showLatin = showLatin,
+                readingMode = readingMode,
+                arabicSize = arabicSize,
+                onToggleShowLatin = onToggleShowLatin,
+                onSetReadingMode = onSetReadingMode,
+                onSetArabicSize = onSetArabicSize,
+                onDismiss = { showSettings = false }
+            )
         }
 
         if (isLoading && ayahs.isEmpty()) {
@@ -795,7 +830,8 @@ private fun SurahReaderView(
                     SurahOpening(
                         surah = surah,
                         targetSurahNumber = targetSurahNumber,
-                        showBasmalah = surah != null && surah.number != 1 && surah.number != 9
+                        showBasmalah = surah != null && surah.number != 1 && surah.number != 9,
+                        basmalahStyle = basmalahStyle
                     )
                 }
 
@@ -806,6 +842,7 @@ private fun SurahReaderView(
                 ) { ayah ->
                     AyahBlock(
                         ayah = ayah,
+                        arabicStyle = arabicStyle,
                         showLatin = showLatin,
                         isResumePoint = ayah.ayahNumber == resumeAyah && resumeAyah > 1,
                         arrival = if (ayah.ayahNumber == resumeAyah) arrival else 0,
@@ -896,13 +933,11 @@ private fun DrawScope.drawRibbon(color: Color, left: Float, width: Float, height
 @Composable
 private fun ResumeJumpPill(ayahNumber: Int, onClick: () -> Unit) {
     val brass = MaterialTheme.colorScheme.secondary
-    // In dark the shadow doesn't show on near-black, so the pill's edge carries its separation
-    val night = MaterialTheme.colorScheme.background.luminance() < 0.5f
     Surface(
         onClick = onClick,
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, if (night) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f) else MaterialTheme.colorScheme.outline),
+        border = BorderStroke(1.dp, LocalQuranReadingColors.current.pillEdge),
         shadowElevation = 2.dp
     ) {
         Row(
@@ -930,6 +965,132 @@ private fun ResumeJumpPill(ayahNumber: Int, onClick: () -> Unit) {
     }
 }
 
+/**
+ * Draws [text] with its visible ink centred in the box. The Quran font's line box is far taller than the
+ * letter and puts it low, so centring the text box (what Text does) leaves glyphs sitting below the middle.
+ */
+@Composable
+private fun InkCenteredGlyph(text: String, fontSize: TextUnit) {
+    // Paint.getTextBounds measures the glyph's real outline; Compose's text path missed the ع tail
+    val typeface = LocalFontFamilyResolver.current.resolve(QuranFontFamily).value as? android.graphics.Typeface
+    val color = LocalContentColor.current
+    Canvas(modifier = Modifier.size(36.dp)) {
+        val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            this.typeface = typeface
+            textSize = fontSize.toPx()
+            this.color = color.toArgb()
+        }
+        val ink = android.graphics.Rect().also { paint.getTextBounds(text, 0, text.length, it) }
+        drawContext.canvas.nativeCanvas.drawText(
+            text, size.width / 2 - ink.exactCenterX(), size.height / 2 - ink.exactCenterY(), paint
+        )
+    }
+}
+
+private val ArabicSizeLabels = listOf("Kecil", "Sedang", "Besar", "Sangat besar")
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReadingSettingsSheet(
+    showLatin: Boolean,
+    readingMode: QuranReadingMode,
+    arabicSize: Int,
+    onToggleShowLatin: () -> Unit,
+    onSetReadingMode: (QuranReadingMode) -> Unit,
+    onSetArabicSize: (Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surface) {
+        // The sheet is its own window and sets its bar icons only when it opens; switching Malam/Terang
+        // while it is open must flip them too, or the system buttons vanish against the sheet
+        val sheetView = LocalView.current
+        val lightBars = MaterialTheme.colorScheme.surface.luminance() > 0.5f
+        SideEffect {
+            (sheetView.parent as? DialogWindowProvider)?.window?.let { window ->
+                WindowCompat.getInsetsController(window, window.decorView).apply {
+                    isAppearanceLightStatusBars = lightBars
+                    isAppearanceLightNavigationBars = lightBars
+                }
+            }
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 20.dp, end = 20.dp, bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(22.dp)
+        ) {
+            Text(
+                text = "Tampilan bacaan",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.semantics { heading() }
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .toggleable(value = showLatin, role = Role.Switch, onValueChange = { onToggleShowLatin() })
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Teks Latin", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                    Text("Cara baca di bawah teks Arab", style = MaterialTheme.typography.bodySmall, color = muted)
+                }
+                Switch(checked = showLatin, onCheckedChange = null)
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Ukuran huruf Arab", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    QuranArabicSizes.indices.forEach { i ->
+                        SegmentedButton(
+                            selected = i == arabicSize,
+                            onClick = { onSetArabicSize(i) },
+                            shape = SegmentedButtonDefaults.itemShape(i, QuranArabicSizes.size),
+                            icon = {},
+                            modifier = Modifier.height(48.dp).semantics { contentDescription = ArabicSizeLabels[i] }
+                        ) {
+                            // The letter itself grows, so each step previews its size
+                            InkCenteredGlyph(text = "ع", fontSize = (15 + i * 3).sp)
+                        }
+                    }
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Mode baca", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    val modes = listOf(
+                        QuranReadingMode.AUTO to "Otomatis",
+                        QuranReadingMode.NIGHT to "Malam",
+                        QuranReadingMode.LIGHT to "Terang"
+                    )
+                    modes.forEachIndexed { i, (mode, label) ->
+                        SegmentedButton(
+                            selected = mode == readingMode,
+                            onClick = { onSetReadingMode(mode) },
+                            shape = SegmentedButtonDefaults.itemShape(i, modes.size),
+                            modifier = Modifier.height(48.dp)
+                        ) { Text(label) }
+                    }
+                }
+                Text(
+                    text = when (readingMode) {
+                        QuranReadingMode.AUTO -> "Malam dari Isya sampai Subuh, juga saat HP memakai mode gelap."
+                        QuranReadingMode.NIGHT -> "Selalu kertas malam yang hangat."
+                        QuranReadingMode.LIGHT -> "Selalu terang, juga di malam hari."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = muted
+                )
+            }
+        }
+    }
+}
+
 // ponytail: estimates progress from item indices, so it moves unevenly when ayah lengths differ a lot
 private fun LazyListState.readingProgress(): Float {
     val info = layoutInfo
@@ -947,7 +1108,8 @@ private fun Int.toArabicIndicDigits(): String = toString().map { '٠' + (it - '0
 private fun SurahOpening(
     surah: SurahEntity?,
     targetSurahNumber: Int,
-    showBasmalah: Boolean
+    showBasmalah: Boolean,
+    basmalahStyle: TextStyle
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -985,7 +1147,7 @@ private fun SurahOpening(
             )
             Text(
                 text = "بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ",
-                style = BasmalahTextStyle,
+                style = basmalahStyle,
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -996,6 +1158,7 @@ private fun SurahOpening(
 @Composable
 private fun AyahBlock(
     ayah: AyahEntity,
+    arabicStyle: TextStyle,
     showLatin: Boolean,
     isResumePoint: Boolean,
     arrival: Int,
@@ -1036,11 +1199,9 @@ private fun AyahBlock(
         }
         wasBookmarked = ayah.isBookmarked
     }
-    // Warm night: jade stays on controls; the Latin line and the open fill take warm ivory tones
-    val night = MaterialTheme.colorScheme.background.luminance() < 0.5f
-    val openFill = if (night) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f) else primary.copy(alpha = 0.05f)
+    val reading = LocalQuranReadingColors.current
     val selectedTint by animateColorAsState(
-        targetValue = if (isOpen) openFill else Color.Transparent,
+        targetValue = if (isOpen) reading.openFill else Color.Transparent,
         label = "ayahSelected"
     )
 
@@ -1113,7 +1274,7 @@ private fun AyahBlock(
 
             Text(
                 text = arabic,
-                style = ArabicAyahTextStyle,
+                style = arabicStyle,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -1122,7 +1283,7 @@ private fun AyahBlock(
                 Text(
                     text = ayah.textLatin,
                     style = LatinAyahTextStyle,
-                    color = if (night) QuranNightLatin else primary,
+                    color = reading.latin,
                     modifier = Modifier.padding(top = 14.dp)
                 )
             }

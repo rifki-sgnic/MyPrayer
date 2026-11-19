@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.rfksgn.myprayer.core.database.AyahEntity
 import com.rfksgn.myprayer.core.database.SurahEntity
 import com.rfksgn.myprayer.data.local.LastReadQuran
+import com.rfksgn.myprayer.data.local.QuranArabicSizeDefault
 import com.rfksgn.myprayer.data.local.QuranPreferences
+import com.rfksgn.myprayer.data.local.QuranReadingMode
 import com.rfksgn.myprayer.data.repository.QuranRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +24,8 @@ data class QuranUiState(
     val selectedTabIndex: Int = 0, // 0 = Daftar Surah, 1 = Bookmark Tersimpan
     val lastRead: LastReadQuran = LastReadQuran(),
     val showLatin: Boolean = true,
+    val readingMode: QuranReadingMode = QuranReadingMode.AUTO,
+    val arabicSize: Int = QuranArabicSizeDefault,
     // State Halaman Baca Surah
     val activeSurahNumber: Int? = null,
     val activeSurah: SurahEntity? = null,
@@ -67,6 +71,20 @@ class QuranViewModel(
                 }
             }
         }
+
+        viewModelScope.launch {
+            combine(preferences.readingModeFlow, preferences.arabicSizeFlow, ::Pair).collect { (mode, size) ->
+                _uiState.update { it.copy(readingMode = mode, arabicSize = size) }
+            }
+        }
+    }
+
+    fun setReadingMode(mode: QuranReadingMode) {
+        viewModelScope.launch { preferences.setReadingMode(mode) }
+    }
+
+    fun setArabicSize(index: Int) {
+        viewModelScope.launch { preferences.setArabicSize(index) }
     }
 
     fun onSearchQueryChange(query: String) {
