@@ -26,6 +26,21 @@ val AmberGold = Color(0xFFEAB308)            // Emas menyala
 val CrispWhite = Color(0xFFF3F4F2)           // Teks utama dark mode
 val SageMuted = Color(0xFF8A9991)            // Teks sekunder dark mode
 
+// Al-Quran — Malam Hangat: warm, low-glare night page. Dark mode of the Quran tab only (QuranTheme).
+val QuranNightBackground = Color(0xFF10110D)  // Hitam hangat, bukan hijau
+val QuranNightSurface = Color(0xFF181914)
+val QuranNightVariant = Color(0xFF24211A)
+val QuranNightBorder = Color(0xFF2C2A23)
+val QuranNightInk = Color(0xFFE9E2D0)         // Gading, tidak menyilaukan seperti putih
+val QuranNightMuted = Color(0xFF9A927E)
+val QuranNightLatin = Color(0xFFB5AC96)       // Teks Latin: hangat & redup, terjemahan tetap dibaca lebih dulu
+val QuranNightError = Color(0xFFE8A08F)       // Mawar hangat, juga dipakai skema gelap utama
+val QuranNightOnError = Color(0xFF3A1510)
+val QuranNightJade = Color(0xFF7FC8A6)        // Jade yang diredam
+val QuranNightAmber = Color(0xFFD9B45A)       // Penanda akhir ayat & pita
+val QuranNightMist = Color(0xFF2A2920)
+val QuranNightContainer = Color(0xFF1E2A23)
+
 // Kiblat — Shaf: karpet masjid dengan garis shaf. Hanya dipakai layar Kiblat.
 val CarpetRed = Color(0xFF7A1522)            // Karpet merah masjid
 val CarpetIvory = Color(0xFFF2E3C6)          // Garis shaf & teks di atas karpet

@@ -8,6 +8,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -27,6 +29,7 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.material3.Text
@@ -58,6 +61,7 @@ import com.rfksgn.myprayer.presentation.quran.QuranScreen
 import com.rfksgn.myprayer.presentation.quran.QuranViewModel
 import com.rfksgn.myprayer.presentation.settings.SettingsScreen
 import com.rfksgn.myprayer.ui.theme.MyPrayerTheme
+import com.rfksgn.myprayer.ui.theme.QuranTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -136,7 +140,8 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     snackbarHost = { SnackbarHost(snackbarHostState) },
                     bottomBar = {
-                        Column {
+                        // On the Quran tab the bar takes Quran's palette, so it matches the warm night page
+                        val bar: @Composable () -> Unit = { Column {
                             HorizontalDivider(
                                 thickness = 1.dp,
                                 color = MaterialTheme.colorScheme.outline
@@ -238,7 +243,8 @@ class MainActivity : ComponentActivity() {
                                     )
                                 )
                             }
-                        }
+                        } }
+                        if (selectedTab == 2) QuranTheme(bar) else bar()
                     }
                 ) { innerPadding ->
                     when (selectedTab) {
@@ -280,7 +286,8 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        2 -> QuranScreen(
+                        // Quran keeps its own night palette; the box paints it under the status bar too
+                        2 -> QuranTheme { Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) { QuranScreen(
                             uiState = quranUiState,
                             onSearchQueryChange = quranViewModel::onSearchQueryChange,
                             onTabSelected = quranViewModel::onTabSelected,
@@ -301,7 +308,7 @@ class MainActivity : ComponentActivity() {
                             onToggleShowLatin = quranViewModel::toggleShowLatin,
                             onDownloadFullQuran = quranViewModel::downloadAll30JuzOffline,
                             modifier = Modifier.padding(innerPadding)
-                        )
+                        ) } }
 
                         3 -> SettingsScreen(
                             reminderModes = uiState.reminderModes,

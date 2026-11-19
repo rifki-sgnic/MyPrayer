@@ -6,6 +6,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 
 // Every role a component reads is set here; unset roles fall back to Material's baseline purple.
 private val DarkColorScheme = darkColorScheme(
@@ -34,6 +35,8 @@ private val DarkColorScheme = darkColorScheme(
     inverseOnSurface = Color(0xFF181816),
     outline = DarkBorder,
     outlineVariant = DarkBorder,
+    error = QuranNightError,
+    onError = QuranNightOnError,
     errorContainer = Color(0xFF8C1D18),
     onErrorContainer = Color(0xFFF9DEDC)
 )
@@ -67,6 +70,48 @@ private val LightColorScheme = lightColorScheme(
     errorContainer = Color(0xFFF9DEDC),
     onErrorContainer = Color(0xFF410E0B)
 )
+
+// Quran tab in dark mode: Malam Hangat. Unlisted roles keep DarkColorScheme's values.
+private val QuranNightColorScheme = DarkColorScheme.copy(
+    primary = QuranNightJade,
+    onPrimary = QuranNightBackground,
+    primaryContainer = QuranNightContainer,
+    onPrimaryContainer = QuranNightInk,
+    secondary = QuranNightAmber,
+    onSecondary = QuranNightBackground,
+    secondaryContainer = QuranNightMist,
+    onSecondaryContainer = QuranNightJade,
+    tertiary = QuranNightAmber,
+    background = QuranNightBackground,
+    onBackground = QuranNightInk,
+    surface = QuranNightSurface,
+    onSurface = QuranNightInk,
+    surfaceVariant = QuranNightVariant,
+    onSurfaceVariant = QuranNightMuted,
+    surfaceTint = QuranNightJade,
+    surfaceContainerLowest = QuranNightBackground,
+    surfaceContainerLow = Color(0xFF141510),
+    surfaceContainer = QuranNightSurface,
+    surfaceContainerHigh = QuranNightVariant,
+    surfaceContainerHighest = Color(0xFF2C2A22),
+    outline = QuranNightBorder,
+    outlineVariant = QuranNightBorder
+)
+
+/**
+ * The Quran tab's palette. `tertiary` is the ayah-end medallion and surah-name colour:
+ * cypress in light mode, amber in the warm night scheme.
+ */
+@Composable
+fun QuranTheme(content: @Composable () -> Unit) {
+    val base = MaterialTheme.colorScheme
+    val dark = base.background.luminance() < 0.5f
+    MaterialTheme(
+        colorScheme = if (dark) QuranNightColorScheme else base.copy(tertiary = base.primary),
+        typography = MaterialTheme.typography,
+        content = content
+    )
+}
 
 /**
  * MyPrayer always renders its own palette (DESIGN.md: The Brand Palette Rule).

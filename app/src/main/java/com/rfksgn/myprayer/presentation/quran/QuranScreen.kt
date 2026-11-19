@@ -52,6 +52,7 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.graphicsLayer
@@ -77,6 +78,7 @@ import androidx.compose.ui.unit.sp
 import com.rfksgn.myprayer.core.database.AyahEntity
 import com.rfksgn.myprayer.core.database.SurahEntity
 import com.rfksgn.myprayer.ui.theme.QuranFontFamily
+import com.rfksgn.myprayer.ui.theme.QuranNightLatin
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.coroutineScope
@@ -825,7 +827,8 @@ private fun SurahReaderView(
             }
 
             androidx.compose.animation.AnimatedVisibility(
-                visible = resumeAhead,
+                // Steps aside while an ayah is open, so it never covers that ayah's save button
+                visible = resumeAhead && openAyahId == null,
                 enter = slideInVertically(tween(320, easing = EaseOutExpo)) { it / 2 } + fadeIn(tween(240)),
                 exit = slideOutVertically(tween(180)) { it / 2 } + fadeOut(tween(180)),
                 modifier = Modifier
@@ -893,11 +896,13 @@ private fun DrawScope.drawRibbon(color: Color, left: Float, width: Float, height
 @Composable
 private fun ResumeJumpPill(ayahNumber: Int, onClick: () -> Unit) {
     val brass = MaterialTheme.colorScheme.secondary
+    // In dark the shadow doesn't show on near-black, so the pill's edge carries its separation
+    val night = MaterialTheme.colorScheme.background.luminance() < 0.5f
     Surface(
         onClick = onClick,
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        border = BorderStroke(1.dp, if (night) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f) else MaterialTheme.colorScheme.outline),
         shadowElevation = 2.dp
     ) {
         Row(
@@ -954,7 +959,7 @@ private fun SurahOpening(
             Text(
                 text = surah.nameArabic,
                 style = SurahOpeningArabicStyle,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.tertiary
             )
         }
         Text(
@@ -1031,16 +1036,20 @@ private fun AyahBlock(
         }
         wasBookmarked = ayah.isBookmarked
     }
+    // Warm night: jade stays on controls; the Latin line and the open fill take warm ivory tones
+    val night = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val openFill = if (night) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f) else primary.copy(alpha = 0.05f)
     val selectedTint by animateColorAsState(
-        targetValue = if (isOpen) primary.copy(alpha = 0.05f) else Color.Transparent,
+        targetValue = if (isOpen) openFill else Color.Transparent,
         label = "ayahSelected"
     )
 
-    val arabic = remember(ayah.textArabic, ayah.ayahNumber, primary) {
+    val medallion = MaterialTheme.colorScheme.tertiary
+    val arabic = remember(ayah.textArabic, ayah.ayahNumber, medallion) {
         buildAnnotatedString {
             append(ayah.textArabic)
             // No-break space keeps the end-of-ayah medallion on the last word's line
-            withStyle(SpanStyle(color = primary)) {
+            withStyle(SpanStyle(color = medallion)) {
                 append(" ۝")
                 append(ayah.ayahNumber.toArabicIndicDigits())
             }
@@ -1113,7 +1122,7 @@ private fun AyahBlock(
                 Text(
                     text = ayah.textLatin,
                     style = LatinAyahTextStyle,
-                    color = primary,
+                    color = if (night) QuranNightLatin else primary,
                     modifier = Modifier.padding(top = 14.dp)
                 )
             }
