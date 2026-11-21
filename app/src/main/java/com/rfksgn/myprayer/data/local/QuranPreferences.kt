@@ -17,9 +17,6 @@ data class LastReadQuran(
     val ayahNumber: Int = 1
 )
 
-/** How the Quran tab picks its palette. AUTO is night from Isya to Subuh, and whenever the phone is in dark mode. */
-enum class QuranReadingMode { AUTO, NIGHT, LIGHT }
-
 /** Arabic ayah sizes in sp, picked by index in the reader's Tampilan sheet. */
 val QuranArabicSizes = listOf(26, 30, 34, 38)
 const val QuranArabicSizeDefault = 1
@@ -31,20 +28,11 @@ class QuranPreferences(private val context: Context) {
         private val LAST_SURAH_NAME_KEY = stringPreferencesKey("last_read_surah_name")
         private val LAST_AYAH_NUM_KEY = intPreferencesKey("last_read_ayah_num")
         private val SHOW_LATIN_KEY = booleanPreferencesKey("quran_show_latin")
-        private val READING_MODE_KEY = stringPreferencesKey("quran_reading_mode")
         private val ARABIC_SIZE_KEY = intPreferencesKey("quran_arabic_size")
-    }
-
-    val readingModeFlow: Flow<QuranReadingMode> = context.quranDataStore.data.map { prefs ->
-        QuranReadingMode.entries.firstOrNull { it.name == prefs[READING_MODE_KEY] } ?: QuranReadingMode.AUTO
     }
 
     val arabicSizeFlow: Flow<Int> = context.quranDataStore.data.map { prefs ->
         (prefs[ARABIC_SIZE_KEY] ?: QuranArabicSizeDefault).coerceIn(QuranArabicSizes.indices)
-    }
-
-    suspend fun setReadingMode(mode: QuranReadingMode) {
-        context.quranDataStore.edit { it[READING_MODE_KEY] = mode.name }
     }
 
     suspend fun setArabicSize(index: Int) {

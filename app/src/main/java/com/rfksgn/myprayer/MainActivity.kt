@@ -31,9 +31,11 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.material3.Text
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -63,10 +65,10 @@ import com.rfksgn.myprayer.presentation.settings.SettingsScreen
 import com.rfksgn.myprayer.ui.theme.MyPrayerTheme
 import com.rfksgn.myprayer.ui.theme.QuranTheme
 import com.rfksgn.myprayer.ui.theme.quranColorScheme
-import com.rfksgn.myprayer.data.local.QuranReadingMode
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
+import com.rfksgn.myprayer.data.local.ThemeMode
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
@@ -85,7 +87,17 @@ class MainActivity : ComponentActivity() {
         val quranRepository = QuranRepository(quranDb.quranDao(), NetworkClient.quranApiService)
 
         setContent {
-            MyPrayerTheme {
+            // null until DataStore answers, so a saved Gelap never flashes a light frame first
+            val themeMode by locationPrefs.themeModeFlow.collectAsState(initial = null)
+            val mode = themeMode ?: return@setContent
+            val systemDark = isSystemInDarkTheme()
+            val appDark = when (mode) {
+                ThemeMode.AUTO -> systemDark
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+            }
+            val themeScope = rememberCoroutineScope()
+            MyPrayerTheme(darkTheme = appDark) {
                 val viewModel: HomeViewModel = viewModel(
                     factory = object : ViewModelProvider.Factory {
                         @Suppress("UNCHECKED_CAST")
@@ -118,16 +130,15 @@ class MainActivity : ComponentActivity() {
                 // State tab aktif (0 = Jadwal, 1 = Kiblat, 2 = Al-Quran, 3 = Setelan)
                 var selectedTab by rememberSaveable { mutableIntStateOf(0) }
 
-                // Quran night: the reader's own choice, or automatic from Isya to Subuh (the schedule's next prayer is
-                // Subuh exactly in that window) and whenever the phone is in dark mode
-                val systemDark = isSystemInDarkTheme()
-                val quranNight = when (quranUiState.readingMode) {
-                    QuranReadingMode.NIGHT -> true
-                    QuranReadingMode.LIGHT -> false
-                    QuranReadingMode.AUTO -> systemDark || uiState.schedule?.nextPrayerName == "Subuh"
+                // Quran night follows a forced Terang/Gelap; on Otomatis it is night from Isya to Subuh (the
+                // schedule's next prayer is Subuh exactly in that window) and whenever the phone is in dark mode
+                val quranNight = when (mode) {
+                    ThemeMode.AUTO -> systemDark || uiState.schedule?.nextPrayerName == "Subuh"
+                    ThemeMode.LIGHT -> false
+                    ThemeMode.DARK -> true
                 }
                 // The Quran tab can be dark on a light phone (or the reverse), so the system bar icons follow the page
-                val darkPage = if (selectedTab == 2) quranNight else systemDark
+                val darkPage = if (selectedTab == 2) quranNight else appDark
                 val view = LocalView.current
                 SideEffect {
                     WindowCompat.getInsetsController(window, view).apply {
@@ -277,39 +288,51 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 ) { innerPadding ->
+                    // Jadwal and Kiblat share one location fix; first-run setup also asks for notifications
+                    // in the same explained step
+                    val refreshLocation = {
+                        val permissions = buildList {
+                            add(Manifest.permission.ACCESS_FINE_LOCATION)
+                            add(Manifest.permission.ACCESS_COARSE_LOCATION)
+                            if (uiState.isDefaultLocation && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                add(Manifest.permission.POST_NOTIFICATIONS)
+                            }
+                        }
+                        permissionLauncher.launch(permissions.toTypedArray())
+                    }
                     when (selectedTab) {
                         0 -> HomeScreen(
                             uiState = uiState,
-                            onRefreshLocationClick = {
-                                val permissions = buildList {
-                                    add(Manifest.permission.ACCESS_FINE_LOCATION)
-                                    add(Manifest.permission.ACCESS_COARSE_LOCATION)
-                                    // First-run setup asks for notifications in the same explained step
-                                    if (uiState.isDefaultLocation &&
-                                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-                                    ) {
-                                        add(Manifest.permission.POST_NOTIFICATIONS)
-                                    }
-                                }
-                                permissionLauncher.launch(permissions.toTypedArray())
-                            },
+                            onRefreshLocationClick = refreshLocation,
                             onToggleAlarm = { prayerName -> viewModel.cycleReminderMode(prayerName) },
                             onOpenSettings = { selectedTab = 3 },
+                            themeMode = mode,
+                            onCycleThemeMode = {
+                                val next = ThemeMode.entries[(mode.ordinal + 1) % ThemeMode.entries.size]
+                                themeScope.launch { locationPrefs.setThemeMode(next) }
+                            },
                             // Home draws its sky under the status bar and pads the top itself
                             modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
                         )
 
                         1 -> {
-                            val azimuth by compassSensor.getAzimuthFlow(
-                                savedLocation.latitude,
-                                savedLocation.longitude
-                            ).collectAsState(initial = 0f)
+                            // Remembered per location, so a sensor tick never re-registers the listeners
+                            val readings = remember(savedLocation.latitude, savedLocation.longitude) {
+                                compassSensor.readings(savedLocation.latitude, savedLocation.longitude)
+                            }
+                            val reading by readings.collectAsState(initial = null)
 
                             QiblaScreen(
-                                currentAzimuth = azimuth,
+                                reading = reading,
+                                hasCompass = compassSensor.isAvailable,
                                 qiblaDirection = (uiState.schedule?.qiblaDirection
                                     ?: 295.1).toFloat(),
+                                latitude = savedLocation.latitude,
+                                longitude = savedLocation.longitude,
                                 locationName = uiState.locationName,
+                                isDefaultLocation = uiState.isDefaultLocation,
+                                isUpdatingLocation = uiState.isUpdatingLocation,
+                                onRefreshLocation = refreshLocation,
                                 nextPrayerName = uiState.schedule?.nextPrayerName.orEmpty(),
                                 // Like Home, the sky runs under the status bar and the screen pads the top itself
                                 modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
@@ -336,7 +359,6 @@ class MainActivity : ComponentActivity() {
                                 )
                             },
                             onToggleShowLatin = quranViewModel::toggleShowLatin,
-                            onSetReadingMode = quranViewModel::setReadingMode,
                             onSetArabicSize = quranViewModel::setArabicSize,
                             onDownloadFullQuran = quranViewModel::downloadAll30JuzOffline,
                             modifier = Modifier.padding(innerPadding)

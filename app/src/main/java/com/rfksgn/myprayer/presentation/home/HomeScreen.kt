@@ -1,6 +1,9 @@
 package com.rfksgn.myprayer.presentation.home
 
 import android.os.Build
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -8,7 +11,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,15 +18,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Contrast
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.NotificationsActive
@@ -43,6 +52,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,8 +73,11 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.rfksgn.myprayer.core.permission.AdzanReadiness
 import com.rfksgn.myprayer.core.permission.rememberAdzanReadiness
+import com.rfksgn.myprayer.data.local.ThemeMode
 import com.rfksgn.myprayer.domain.model.ReminderMode
 import com.rfksgn.myprayer.ui.theme.SkyStone
+import com.rfksgn.myprayer.ui.theme.readout
+import com.rfksgn.myprayer.ui.theme.subLine
 import com.rfksgn.myprayer.ui.theme.prayerSky
 import java.time.LocalTime
 import java.time.ZoneId
@@ -79,6 +92,8 @@ fun HomeScreen(
     onRefreshLocationClick: () -> Unit,
     onToggleAlarm: (String) -> Unit,
     onOpenSettings: () -> Unit,
+    themeMode: ThemeMode,
+    onCycleThemeMode: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val schedule = uiState.schedule
@@ -123,12 +138,14 @@ fun HomeScreen(
       BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val viewportHeight = maxHeight
         val scrollState = rememberScrollState()
+        // The plate centres on the theme hub: status bar, the 8dp top padding, then half the 48dp hub
+        val hubCenterY = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 8.dp + 24.dp
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState, enabled = scrollState.maxValue > 0)
                 // After the scroll so the sky and astrolabe plate scroll with the content
-                .prayerSky(schedule.nextPrayerName)
+                .prayerSky(schedule.nextPrayerName, hubCenterY)
                 .heightIn(min = viewportHeight)
                 // The sky runs under the status bar; content starts below it
                 .statusBarsPadding()
@@ -137,14 +154,10 @@ fun HomeScreen(
             verticalArrangement = Arrangement.SpaceBetween
         ) {
           Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            // 1. HEADER: the location pill wraps under the date when both don't fit
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                itemVerticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            // 1. HEADER: dates with the location under them, and the theme hub at the plate's centre
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.weight(1f)) {
+                  Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
                         text = hijriDateString.uppercase(),
                         style = TextStyle(
@@ -160,13 +173,15 @@ fun HomeScreen(
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                  }
+                  LocationPill(
+                      locationName = uiState.locationName,
+                      isUpdating = uiState.isUpdatingLocation,
+                      onClick = onRefreshLocationClick
+                  )
                 }
-
-                LocationPill(
-                    locationName = uiState.locationName,
-                    isUpdating = uiState.isUpdatingLocation,
-                    onClick = onRefreshLocationClick
-                )
+                Spacer(modifier = Modifier.width(12.dp))
+                ThemeHub(mode = themeMode, onClick = onCycleThemeMode)
             }
 
             // First run: the schedule below is Jakarta's until the user shares a location
@@ -244,8 +259,46 @@ fun HomeScreen(
     }
 }
 
+/** A 40dp cypress disc in a 48dp target; each tap moves Otomatis, Terang, Gelap, then back. */
 @Composable
-private fun LocationPill(
+private fun ThemeHub(mode: ThemeMode, onClick: () -> Unit) {
+    val label = when (mode) {
+        ThemeMode.AUTO -> "Otomatis"
+        ThemeMode.LIGHT -> "Terang"
+        ThemeMode.DARK -> "Gelap"
+    }
+    val disc by animateColorAsState(MaterialTheme.colorScheme.primary, tween(300), label = "hubDisc")
+    val glyph by animateColorAsState(MaterialTheme.colorScheme.background, tween(300), label = "hubGlyph")
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(CircleShape)
+            .clickable(role = Role.Button, onClickLabel = "Ganti tema", onClick = onClick)
+            .semantics { contentDescription = "Tema: " + label },
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier.size(40.dp).background(disc, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Crossfade(targetState = mode, animationSpec = tween(200), label = "hubIcon") { m ->
+                Icon(
+                    imageVector = when (m) {
+                        ThemeMode.AUTO -> Icons.Filled.Contrast
+                        ThemeMode.LIGHT -> Icons.Filled.LightMode
+                        ThemeMode.DARK -> Icons.Filled.DarkMode
+                    },
+                    contentDescription = null,
+                    tint = glyph,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+internal fun LocationPill(
     locationName: String,
     isUpdating: Boolean,
     onClick: () -> Unit
@@ -395,12 +448,7 @@ private fun NextPrayerBlock(
             // Shrinks rather than clips for long names (Maghrib) at large font scales
             BasicText(
                 text = nextPrayerName,
-                style = TextStyle(
-                    fontWeight = FontWeight.Bold,
-                    lineHeight = 0.92.em,
-                    letterSpacing = (-0.03).em,
-                    color = onSurface
-                ),
+                style = MaterialTheme.typography.displayLarge.copy(color = onSurface),
                 maxLines = 1,
                 autoSize = TextAutoSize.StepBased(minFontSize = 40.sp, maxFontSize = 80.sp)
             )
@@ -416,13 +464,8 @@ private fun NextPrayerBlock(
                     }
                     append(" lagi")
                 },
-                style = TextStyle(
-                    fontSize = 15.sp,
-                    lineHeight = 20.sp,
-                    fontWeight = FontWeight.Medium,
-                    fontFeatureSettings = "tnum",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                style = MaterialTheme.typography.subLine,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
@@ -445,12 +488,8 @@ private fun NextPrayerBlock(
             val degrees = qiblaDirection.roundToInt()
             Text(
                 text = "Kiblat $degrees°",
-                style = TextStyle(
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    fontFeatureSettings = "tnum",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                ),
+                style = MaterialTheme.typography.readout,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 modifier = Modifier.semantics {
                     contentDescription =
@@ -474,7 +513,7 @@ private fun ReminderStatus(
         !readiness.notifications -> "Notifikasi adzan belum aktif"
         else -> null
     }
-    val textStyle = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+    val textStyle = MaterialTheme.typography.readout
     val goldAccent = MaterialTheme.colorScheme.secondary
 
     if (problem != null) {
@@ -672,7 +711,7 @@ private fun isPrayerPassed(timeStr: String, now: LocalTime, isNext: Boolean): Bo
 }
 
 /** WIB / WITA / WIT from the device's current offset; GMT±h anywhere else. */
-private fun localZoneLabel(): String {
+internal fun localZoneLabel(): String {
     val offsetSeconds = ZonedDateTime.now(ZoneId.systemDefault()).offset.totalSeconds
     return when (offsetSeconds) {
         7 * 3600 -> "WIB"

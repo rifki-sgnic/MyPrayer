@@ -27,6 +27,9 @@ data class CustomAdzanAudio(
     val fajrFileName: String = "Default Subuh (Bawaan Aplikasi)"
 )
 
+/** App theme, picked from the hub on the schedule screen. AUTO follows the phone. */
+enum class ThemeMode { AUTO, LIGHT, DARK }
+
 class LocationPreferences(private val context: Context) {
 
     companion object {
@@ -43,6 +46,7 @@ class LocationPreferences(private val context: Context) {
         private val CUSTOM_FAJR_NAME_KEY = stringPreferencesKey("custom_fajr_adzan_name")
 
         private val ADZAN_VOLUME_KEY = floatPreferencesKey("adzan_volume")
+        private val THEME_MODE_KEY = stringPreferencesKey("theme_mode")
         fun modeKeyFor(prayerName: String) = stringPreferencesKey("reminder_mode_$prayerName")
     }
 
@@ -54,6 +58,14 @@ class LocationPreferences(private val context: Context) {
             cityName = prefs[CITY_KEY] ?: "Jakarta Pusat",
             isDefault = prefs[LAT_KEY] == null
         )
+    }
+
+    val themeModeFlow: Flow<ThemeMode> = context.dataStore.data.map { prefs ->
+        ThemeMode.entries.firstOrNull { it.name == prefs[THEME_MODE_KEY] } ?: ThemeMode.AUTO
+    }
+
+    suspend fun setThemeMode(mode: ThemeMode) {
+        context.dataStore.edit { it[THEME_MODE_KEY] = mode.name }
     }
 
     // Menyimpan mode per waktu sholat (ADZAN, VIBRATE, atau SILENT)

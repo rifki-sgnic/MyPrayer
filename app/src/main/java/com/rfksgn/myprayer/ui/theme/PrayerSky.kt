@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.cos
 import kotlin.math.sin
@@ -50,11 +51,12 @@ val SkyStone = Color(0xFF5F5C55)
 
 /**
  * Paints the page background, a sky tint fading out by 300dp, and an astrolabe plate (altitude rings every
- * 28dp, hour lines every 15°) centred off-screen top right, with a marker where the sun or moon stands.
+ * 28dp, hour lines every 15°) centred top right on the theme hub ([hubCenterY] from the top, 44dp in from the
+ * right edge) with a soft halo where the hub disc sits, and a marker where the sun or moon stands.
  * Apply after verticalScroll so it scrolls with the content.
  */
 @Composable
-fun Modifier.prayerSky(nextPrayer: String): Modifier {
+fun Modifier.prayerSky(nextPrayer: String, hubCenterY: Dp): Modifier {
     val background = MaterialTheme.colorScheme.background
     val target = prayerSky(nextPrayer, dark = background.luminance() < 0.5f)
     val spec = tween<Float>(800)
@@ -71,7 +73,7 @@ fun Modifier.prayerSky(nextPrayer: String): Modifier {
         )
 
         // The plate fades in from 40dp, holds to 220dp, and is gone by 360dp from its centre
-        val center = Offset(size.width - 60.dp.toPx(), 80.dp.toPx())
+        val center = Offset(size.width - 44.dp.toPx(), hubCenterY.toPx())
         val reach = 360.dp.toPx()
         val line = body.copy(alpha = 0.25f)
         val mask = Brush.radialGradient(
@@ -99,6 +101,8 @@ fun Modifier.prayerSky(nextPrayer: String): Modifier {
                 strokeWidth = hairline
             )
         }
+        // The hub's halo: 6dp of the body colour around its 40dp disc
+        drawCircle(body.copy(alpha = 0.14f), radius = 26.dp.toPx(), center = center)
 
         // Sun or moon: a 12dp disc with two soft halos. It travels in the free band between the header
         // and the prayer name (160dp at the horizon, 128dp at the zenith) so it never shows through the text

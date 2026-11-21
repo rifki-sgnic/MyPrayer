@@ -90,7 +90,6 @@ import com.rfksgn.myprayer.core.database.AyahEntity
 import com.rfksgn.myprayer.core.database.SurahEntity
 import com.rfksgn.myprayer.ui.theme.QuranFontFamily
 import com.rfksgn.myprayer.data.local.QuranArabicSizes
-import com.rfksgn.myprayer.data.local.QuranReadingMode
 import com.rfksgn.myprayer.ui.theme.LocalQuranReadingColors
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
@@ -170,7 +169,6 @@ fun QuranScreen(
     onToggleBookmark: (AyahEntity) -> Unit,
     onMarkLastRead: (SurahEntity, Int) -> Unit,
     onToggleShowLatin: () -> Unit,
-    onSetReadingMode: (QuranReadingMode) -> Unit,
     onSetArabicSize: (Int) -> Unit,
     onDownloadFullQuran: () -> Unit,
     modifier: Modifier = Modifier
@@ -198,7 +196,6 @@ fun QuranScreen(
                 uiState.lastRead.ayahNumber
             } else -1,
             showLatin = uiState.showLatin,
-            readingMode = uiState.readingMode,
             arabicSize = uiState.arabicSize,
             isLoading = uiState.isLoadingSurah,
             errorMessage = uiState.surahLoadError,
@@ -206,7 +203,6 @@ fun QuranScreen(
             onRetry = { onOpenSurah(currentNum, uiState.initialScrollAyah) },
             onNavigateSurah = { targetSurahNumber -> onOpenSurah(targetSurahNumber, 1) },
             onToggleShowLatin = onToggleShowLatin,
-            onSetReadingMode = onSetReadingMode,
             onSetArabicSize = onSetArabicSize,
             onToggleBookmark = onToggleBookmark,
             onMarkLastRead = { ayahNum ->
@@ -599,7 +595,6 @@ private fun SurahReaderView(
     initialScrollAyah: Int,
     lastReadAyahNumber: Int,
     showLatin: Boolean,
-    readingMode: QuranReadingMode,
     arabicSize: Int,
     isLoading: Boolean,
     errorMessage: String?,
@@ -607,7 +602,6 @@ private fun SurahReaderView(
     onRetry: () -> Unit,
     onNavigateSurah: (Int) -> Unit,
     onToggleShowLatin: () -> Unit,
-    onSetReadingMode: (QuranReadingMode) -> Unit,
     onSetArabicSize: (Int) -> Unit,
     onToggleBookmark: (AyahEntity) -> Unit,
     onMarkLastRead: (Int) -> Unit,
@@ -781,10 +775,8 @@ private fun SurahReaderView(
         if (showSettings) {
             ReadingSettingsSheet(
                 showLatin = showLatin,
-                readingMode = readingMode,
                 arabicSize = arabicSize,
                 onToggleShowLatin = onToggleShowLatin,
-                onSetReadingMode = onSetReadingMode,
                 onSetArabicSize = onSetArabicSize,
                 onDismiss = { showSettings = false }
             )
@@ -993,17 +985,15 @@ private val ArabicSizeLabels = listOf("Kecil", "Sedang", "Besar", "Sangat besar"
 @Composable
 private fun ReadingSettingsSheet(
     showLatin: Boolean,
-    readingMode: QuranReadingMode,
     arabicSize: Int,
     onToggleShowLatin: () -> Unit,
-    onSetReadingMode: (QuranReadingMode) -> Unit,
     onSetArabicSize: (Int) -> Unit,
     onDismiss: () -> Unit
 ) {
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surface) {
-        // The sheet is its own window and sets its bar icons only when it opens; switching Malam/Terang
-        // while it is open must flip them too, or the system buttons vanish against the sheet
+        // The sheet is its own window and sets its bar icons only when it opens; the palette flipping
+        // while it is open (Isya arriving, phone dark mode) must flip them too, or the system buttons vanish against the sheet
         val sheetView = LocalView.current
         val lightBars = MaterialTheme.colorScheme.surface.luminance() > 0.5f
         SideEffect {
@@ -1058,34 +1048,6 @@ private fun ReadingSettingsSheet(
                         }
                     }
                 }
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Mode baca", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                    val modes = listOf(
-                        QuranReadingMode.AUTO to "Otomatis",
-                        QuranReadingMode.NIGHT to "Malam",
-                        QuranReadingMode.LIGHT to "Terang"
-                    )
-                    modes.forEachIndexed { i, (mode, label) ->
-                        SegmentedButton(
-                            selected = mode == readingMode,
-                            onClick = { onSetReadingMode(mode) },
-                            shape = SegmentedButtonDefaults.itemShape(i, modes.size),
-                            modifier = Modifier.height(48.dp)
-                        ) { Text(label) }
-                    }
-                }
-                Text(
-                    text = when (readingMode) {
-                        QuranReadingMode.AUTO -> "Malam dari Isya sampai Subuh, juga saat HP memakai mode gelap."
-                        QuranReadingMode.NIGHT -> "Selalu kertas malam yang hangat."
-                        QuranReadingMode.LIGHT -> "Selalu terang, juga di malam hari."
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = muted
-                )
             }
         }
     }

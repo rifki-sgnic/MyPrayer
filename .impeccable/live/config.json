@@ -1,5 +1,7 @@
 {
-  "files": [".impeccable/listlab/index.html"],
+  "files": [
+    ".impeccable/homelab/index.html"
+  ],
   "insertBefore": "</body>",
   "commentSyntax": "html",
   "cspChecked": true
