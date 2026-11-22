@@ -34,7 +34,10 @@ data class QuranUiState(
     // State Unduh 30 Juz Offline
     val isDownloadingFullQuran: Boolean = false,
     val downloadProgressText: String? = null
-)
+) {
+    val isReaderActive: Boolean
+        get() = activeSurahNumber != null || activeSurah != null || isLoadingSurah || surahLoadError != null
+}
 
 class QuranViewModel(
     private val repository: QuranRepository,

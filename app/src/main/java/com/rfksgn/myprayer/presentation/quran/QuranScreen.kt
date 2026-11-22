@@ -177,8 +177,7 @@ fun QuranScreen(
         uiState.surahs.associateBy { it.number }
     }
 
-    val isReaderActive = uiState.activeSurahNumber != null || uiState.activeSurah != null || uiState.isLoadingSurah || uiState.surahLoadError != null
-    if (isReaderActive) {
+    if (uiState.isReaderActive) {
         BackHandler(onBack = onCloseSurah)
 
         val currentNum = uiState.activeSurahNumber ?: uiState.activeSurah?.number ?: 1

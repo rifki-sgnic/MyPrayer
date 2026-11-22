@@ -23,6 +23,9 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.rfksgn.myprayer.ui.theme.LaunchCascadeMs
 import com.rfksgn.myprayer.ui.theme.LocalLaunchProgress
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
@@ -264,6 +267,12 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     snackbarHost = { SnackbarHost(snackbarHostState) },
                     bottomBar = {
+                        // The surah reader is full screen; its own back button returns to the list
+                        AnimatedVisibility(
+                            visible = !(selectedTab == 2 && quranUiState.isReaderActive),
+                            enter = slideInVertically(tween(300, easing = EmphasizedEasing)) { it },
+                            exit = slideOutVertically(tween(200)) { it }
+                        ) {
                         AppNavigationBar(
                             selectedTab = selectedTab,
                             // The bar takes the page's palette: Quran's on Al-Quran, the carpet on Setelan
@@ -282,6 +291,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         )
+                        }
                     }
                 ) { innerPadding ->
                     // Jadwal and Kiblat share one location fix; first-run setup also asks for notifications
