@@ -54,9 +54,30 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -126,12 +147,14 @@ class MainActivity : ComponentActivity() {
         // the loading spinner shows. ponytail: 1.5s cap, so a stuck load still opens the app.
         val splashStart = SystemClock.uptimeMillis()
         splash.setKeepOnScreenCondition { !contentReady && SystemClock.uptimeMillis() - splashStart < 1500 }
-        // The mark shrinks away and the splash fades in 160ms; Jadwal's cascade plays underneath
+        // The mark shrinks as the splash fades in 160ms; Jadwal's cascade plays underneath. Strong ease-out, so the
+        // schedule shows from the first frames instead of waiting behind a slow start.
         splash.setOnExitAnimationListener { provider ->
-            val accelerate = PathInterpolator(0.3f, 0f, 0.8f, 0.15f)
-            provider.iconView.animate().alpha(0f).scaleX(0.8f).scaleY(0.8f)
-                .setDuration(160).setInterpolator(accelerate).start()
-            provider.view.animate().alpha(0f).setDuration(160).setInterpolator(accelerate)
+            val easeOut = PathInterpolator(0.23f, 1f, 0.32f, 1f)
+            // The splash's fade carries the mark too, so the mark only shrinks
+            provider.iconView.animate().scaleX(0.8f).scaleY(0.8f)
+                .setDuration(160).setInterpolator(easeOut).start()
+            provider.view.animate().alpha(0f).setDuration(160).setInterpolator(easeOut)
                 .withEndAction { provider.remove() }.start()
         }
         // A config change or restored process doesn't replay the launch
@@ -271,7 +294,7 @@ class MainActivity : ComponentActivity() {
                         AnimatedVisibility(
                             visible = !(selectedTab == 2 && quranUiState.isReaderActive),
                             enter = slideInVertically(tween(300, easing = EmphasizedEasing)) { it },
-                            exit = slideOutVertically(tween(200)) { it }
+                            exit = slideOutVertically(tween(200, easing = EmphasizedEasing)) { it }
                         ) {
                         AppNavigationBar(
                             selectedTab = selectedTab,
@@ -285,9 +308,8 @@ class MainActivity : ComponentActivity() {
                             onSelect = { tab ->
                                 if (tab != selectedTab) {
                                     selectedTab = tab
-                                } else when (tab) {
-                                    2 -> quranViewModel.closeActiveSurah()
-                                    3 -> navScope.launch { settingsScroll.animateScrollTo(0) }
+                                } else if (tab == 3) {
+                                    navScope.launch { settingsScroll.animateScrollTo(0) }
                                 }
                             }
                         )
@@ -382,7 +404,10 @@ class MainActivity : ComponentActivity() {
                             onToggleShowLatin = quranViewModel::toggleShowLatin,
                             onSetArabicSize = quranViewModel::setArabicSize,
                             onDownloadFullQuran = quranViewModel::downloadAll30JuzOffline,
-                            modifier = Modifier.padding(innerPadding)
+                            // The reader never pads for the bar, so the bar slides over it without the content jumping
+                            modifier = if (quranUiState.isReaderActive) {
+                                Modifier.padding(top = innerPadding.calculateTopPadding()).navigationBarsPadding()
+                            } else Modifier.padding(innerPadding)
                         ) } }
 
                         3 -> SettingsScreen(
@@ -442,48 +467,104 @@ private fun AppNavigationBar(
     val indicator by animateColorAsState(scheme.secondaryContainer, spec, label = "navIndicator")
     val muted by animateColorAsState(scheme.onSurfaceVariant, spec, label = "navMuted")
     val badge by animateColorAsState(scheme.secondary, spec, label = "navBadge")
-    val itemColors = NavigationBarItemDefaults.colors(
-        selectedIconColor = accent,
-        selectedTextColor = accent,
-        indicatorColor = indicator,
-        unselectedIconColor = muted,
-        unselectedTextColor = muted
-    )
     // One pulse per tap, reselects included, so every tap is answered
     val pulses = remember { mutableStateListOf(0, 0, 0, 0) }
+    // The niche glides to the selected tab; read only in the draw phase
+    // 250ms, so the niche (the tap's answer) lands just before the 300ms page slide
+    val nichePos by animateFloatAsState(selectedTab.toFloat(), tween(250, easing = EmphasizedEasing), label = "navNiche")
 
     Column {
         HorizontalDivider(thickness = 1.dp, color = line)
-        NavigationBar(containerColor = surface, tonalElevation = 0.dp) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                // Read in draw, so the palette change repaints the bar rather than recomposing it
+                .drawBehind { drawRect(surface) }
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .height(68.dp)
+                .drawWithCache {
+                    val u = 1.dp.toPx()
+                    val niche = mihrabPath(u, close = true)
+                    val edge = mihrabPath(u, close = false)
+                    val inner = Path().apply {
+                        moveTo(7 * u, 58 * u); lineTo(7 * u, 29 * u)
+                        cubicTo(7 * u, 19 * u, 18 * u, 12 * u, 29 * u, 7.5f * u)
+                        cubicTo(40 * u, 12 * u, 51 * u, 19 * u, 51 * u, 29 * u)
+                        lineTo(51 * u, 58 * u)
+                    }
+                    val hairline = Stroke(width = u)
+                    // The niche fades into the bar from 62% of its height down
+                    fun fade(c: Color) = Brush.verticalGradient(0.62f to c, 0.96f to c.copy(alpha = 0f), endY = 58 * u)
+                    onDrawBehind {
+                        // Rises 13dp above the bar's hairline, centred on the selected item
+                        translate(left = (nichePos + 0.5f) * size.width / navTabs.size - 29 * u, top = -13 * u) {
+                            drawPath(niche, fade(indicator))
+                            drawPath(edge, fade(accent.copy(alpha = 0.4f)), style = hairline)
+                            drawPath(inner, fade(accent.copy(alpha = 0.18f)), style = hairline)
+                        }
+                    }
+                }
+                .selectableGroup()
+        ) {
             navTabs.forEachIndexed { index, tab ->
                 val selected = selectedTab == index
                 val flagged = index == 3 && missingPermissions > 0
-                NavigationBarItem(
-                    selected = selected,
-                    onClick = {
-                        pulses[index]++
-                        onSelect(index)
-                    },
-                    icon = {
-                        BadgedBox(badge = {
-                            // qualified: the bar's RowScope would otherwise pick RowScope.AnimatedVisibility
-                            androidx.compose.animation.AnimatedVisibility(visible = flagged, enter = scaleIn() + fadeIn(), exit = scaleOut() + fadeOut()) {
-                                Badge(containerColor = badge)
-                            }
-                        }) {
+                val color by animateColorAsState(if (selected) accent else muted, tween(200), label = "navItem")
+                // The selected icon stands up into the niche
+                val lift by animateDpAsState(if (selected) (-8).dp else 0.dp, tween(250, easing = EmphasizedEasing), label = "navLift")
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        // The icon's settle answers each tap, so no ripple fights the niche
+                        .selectable(
+                            selected = selected,
+                            onClick = {
+                                pulses[index]++
+                                onSelect(index)
+                            },
+                            role = Role.Tab,
+                            interactionSource = null,
+                            indication = null
+                        )
+                        .semantics {
+                            contentDescription = if (flagged) "${tab.label}, $missingPermissions izin belum aktif" else tab.label
+                        }
+                        .padding(bottom = 9.dp),
+                    verticalArrangement = Arrangement.spacedBy(7.dp, Alignment.Bottom),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CompositionLocalProvider(LocalContentColor provides color) {
+                        BadgedBox(
+                            badge = {
+                                // qualified: the item's ColumnScope would otherwise pick ColumnScope.AnimatedVisibility
+                                androidx.compose.animation.AnimatedVisibility(
+                                    visible = flagged,
+                                    enter = scaleIn(initialScale = 0.9f) + fadeIn(tween(150)),
+                                    exit = scaleOut(targetScale = 0.9f) + fadeOut(tween(150))
+                                ) {
+                                    Badge(containerColor = badge)
+                                }
+                            },
+                            modifier = Modifier.offset { IntOffset(0, lift.roundToPx()) }
+                        ) {
                             NavIcon(tab, selected, pulses[index])
                         }
-                    },
-                    label = { Text(tab.label) },
-                    colors = itemColors,
-                    // The icon's semantics are cleared under a label, so the warning goes on the item
-                    modifier = if (flagged) {
-                        Modifier.semantics { contentDescription = "${tab.label}, $missingPermissions izin belum aktif" }
-                    } else Modifier
-                )
+                        Text(tab.label, style = MaterialTheme.typography.labelMedium, modifier = Modifier.clearAndSetSemantics { })
+                    }
+                }
             }
         }
     }
+}
+
+/** The mihrab niche: a pointed arch 54dp wide in a 58dp box, open at the bottom when only its edge is drawn. */
+private fun mihrabPath(u: Float, close: Boolean) = Path().apply {
+    moveTo(2 * u, 58 * u); lineTo(2 * u, 27 * u)
+    cubicTo(2 * u, 15 * u, 15 * u, 6.5f * u, 29 * u, 1 * u)
+    cubicTo(43 * u, 6.5f * u, 56 * u, 15 * u, 56 * u, 27 * u)
+    lineTo(56 * u, 58 * u)
+    if (close) close()
 }
 
 @Composable
@@ -493,7 +574,7 @@ private fun NavIcon(tab: NavTab, selected: Boolean, pulse: Int) {
     LaunchedEffect(pulse) {
         if (pulse > 0) {
             settle.snapTo(0f)
-            settle.animateTo(1f, spring(dampingRatio = 0.55f, stiffness = 380f))
+            settle.animateTo(1f, spring(dampingRatio = 0.8f, stiffness = 380f))
         }
     }
     Crossfade(targetState = selected, animationSpec = tween(150), label = "navIconFill") { filled ->
@@ -503,7 +584,7 @@ private fun NavIcon(tab: NavTab, selected: Boolean, pulse: Int) {
             modifier = Modifier.graphicsLayer {
                 val p = settle.value
                 rotationZ = tab.turn * (1f - p)
-                val s = 0.8f + 0.2f * p
+                val s = 0.9f + 0.1f * p
                 scaleX = s
                 scaleY = s
             }

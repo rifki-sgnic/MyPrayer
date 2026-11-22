@@ -155,10 +155,9 @@ components:
     textColor: "{colors.stone-muted}"
     typography: "{typography.label}"
   nav-item-selected:
-    # Jadwal and Kiblat; Al-Quran and Setelan take their own palettes (see Navigation)
+    # The mihrab niche. Jadwal and Kiblat; Al-Quran and Setelan take their own palettes (see Navigation)
     backgroundColor: "{colors.cypress-tint}"
     textColor: "{colors.cypress-primary}"
-    rounded: "{rounded.full}"
 ---
 
 # Design System: MyPrayer
@@ -298,7 +297,7 @@ A single column on phones. Jadwal fits one screen and does not scroll: it is two
 
 The Kiblat screen is not scrolled. Like Jadwal, its sky runs under the status bar. The header row sits at the 20dp gutter below the status bar, the stick stands 286dp below the status bar (raised on short screens so its shadow clears the panel), and the guidance panel sits on a fade at the bottom.
 
-Navigation is a four-item Material navigation bar (Jadwal, Kiblat, Al-Quran, Setelan) with a 1dp hairline above it and no tonal elevation. There is no tablet or landscape adaptation yet. A navigation rail on expanded widths is the expected path when that is needed.
+Navigation is a four-item bar (Jadwal, Kiblat, Al-Quran, Setelan) with a 1dp hairline above it, no tonal elevation, and a mihrab niche marking the selected tab. There is no tablet or landscape adaptation yet. A navigation rail on expanded widths is the expected path when that is needed.
 
 ## Elevation & Depth
 
@@ -378,11 +377,15 @@ Material snackbar on Cypress Night (`inverseSurface`), with cream text and the a
 A newer message replaces the one on screen. Messages without an action get a dismiss button.
 
 ### Navigation
-Material 3 navigation bar (`AppNavigationBar` in `MainActivity.kt`) with a 1dp hairline above and no tonal elevation. Jadwal (clock), Kiblat (compass), Al-Quran (book), Setelan (gear).
-- **Palette follows the page.** Jadwal and Kiblat use the app scheme: Paper surface, primary icon and label, `secondaryContainer` indicator (Cypress Mist / Jade Mist), Stone or Sage when unselected. Al-Quran uses `quranColorScheme`; Setelan uses `carpetColorScheme` (Carpet Paper surface, carpet red by day and carpet gold at night, the accent at 14% as indicator, ink at 14% hairline). Colours move with the incoming page (90ms delay, 210ms).
+A custom bar (`AppNavigationBar` in `MainActivity.kt`), 68dp plus the system navigation inset, with a 1dp hairline above and no tonal elevation. Jadwal (clock), Kiblat (compass), Al-Quran (book), Setelan (gear). Labels in Label type under the icons, always shown.
+- **Mihrab niche (signature).** The selected tab stands in a pointed prayer arch, 54dp wide in a 58dp box, that rises 13dp above the hairline (`mihrabPath`). It is filled with the indicator colour, edged in the accent at 40% with an inner arch at 18%, and fades into the bar from 62% of its height down. It glides to the new tab over 250ms with emphasized easing, landing just before the 300ms page slide, and the selected icon lifts 8dp into it on the same timing. Drawn in the draw phase only. It echoes the prayer-arch motif on Setelan's hero.
+- **Palette follows the page.** Jadwal and Kiblat use the app scheme: Paper surface, primary icon and label, `secondaryContainer` niche (Cypress Mist / Jade Mist), Stone or Sage when unselected. Al-Quran uses `quranColorScheme`; Setelan uses `carpetColorScheme` (Carpet Paper surface, carpet red by day and carpet gold at night, the accent at 14% as indicator, ink at 14% hairline). Colours move with the incoming page (90ms delay, 210ms).
 - **Icons:** outlined when unselected, filled when selected (150ms crossfade). Labels keep one weight in both states, so they never change width.
-- **Tap feedback:** every tap, reselects included, settles the icon from 80% scale with a slight overshoot (spring, damping 0.55). Kiblat's needle swings 45° onto its line and Setelan's gear turns a quarter as they settle.
-- **Reselect:** Al-Quran closes an open surah; Setelan scrolls back to the verdict.
+- **Tap feedback:** every tap, reselects included, settles the icon from 90% scale with a slight overshoot (spring, damping 0.8). Kiblat's needle swings 45° onto its line and Setelan's gear turns a quarter as they settle. There is no ripple; the settle is the answer.
+- **Hidden in the reader.** While a surah is open the bar slides away (300ms in, 200ms out, both emphasized) and the reader is full screen; its back button returns to the list. The reader pads only for the system navigation bar, so the bar slides over it and the content never jumps.
+- **Missing-permission dot:** grows from 90% and fades over 150ms.
+- **Reselect:** Setelan scrolls back to the verdict.
+- **Screen reader:** each item is a tab in a selectable group, labelled with its name.
 - **Back:** from Kiblat, Al-Quran or Setelan returns to Jadwal (the Quran reader closes its surah first). Back on Jadwal leaves the app.
 - **Missing permission:** a 6dp badge in `secondary` (Brass / Amber) on Setelan while notifications or exact alarms are off; the item reads "Setelan, {n} izin belum aktif". Hidden on first run, while the location card is the call to action. Re-checked on every resume.
 - **Tab change:** Material shared axis along the bar. Moving right, the new page enters from the right and the old one leaves to the left; moving left (Back included), the reverse. Both slide a fifth of the width over 300ms with emphasized easing; the old page fades out in 90ms, the new one fades in over the next 210ms. The system's "Remove animations" setting turns it, and the icon motion, into a cut.
@@ -391,8 +394,8 @@ Material 3 navigation bar (`AppNavigationBar` in `MainActivity.kt`) with a 1dp h
 The app opens straight onto Jadwal's own ground, never a white window.
 - **Splash** (`Theme.MyPrayer.Starting`, androidx core-splashscreen): the page background (Warm Limestone / Obsidian Night) with the theme hub as the mark: a 56dp primary disc, an 8dp halo of the body colour at 14% and a 1dp ring at 30% (`drawable/splash_mark.xml`, colours in `values/` and `values-night/splash.xml`). On Android 12+ the app sets `UiModeManager.setApplicationNightMode` from the theme hub, so the splash follows Terang/Gelap rather than the phone; the manifest handles `uiMode`, so this never recreates the activity. The window behind Compose has the same background.
 - **Hold:** the splash stays until DataStore has the theme and the first schedule exists (capped at 1.5s), so neither a blank frame nor the spinner shows.
-- **Exit:** the mark shrinks to 80% and fades with the splash in 160ms (emphasized accelerate).
-- **Cascade:** underneath, Jadwal settles in from the top: header, next prayer, schedule header, then the six rows, each fading in and rising 12dp over 280ms (emphasized decelerate), starting 60ms in and 28ms apart (`ui/theme/LaunchEntrance.kt`). The sky, plate and navigation bar arrive with the splash fade. About 600ms in all.
+- **Exit:** the splash fades in 160ms with a strong ease-out (0.23, 1, 0.32, 1), so the schedule shows from the first frames; the mark shrinks to 80% as the splash's fade carries it.
+- **Cascade:** underneath, Jadwal settles in from the top: header, location card (first run), next prayer, schedule label, then the six rows. Each block fades in over 220ms (emphasized decelerate) at its own start (0, 30, 50, 70, 80, 88, 94, 98, 100, 100ms; `ui/theme/LaunchEntrance.kt`). The gaps shrink down the page so it reads as one wave. The next prayer, the lead, rises 12dp; everything else rises 6dp. The sky, plate and navigation bar arrive with the splash fade. About 320ms in all.
 - Plays only on a fresh launch (no saved state); a rotation or restored process opens settled. "Remove animations" makes it a cut.
 
 ### Quran Reader (signature)

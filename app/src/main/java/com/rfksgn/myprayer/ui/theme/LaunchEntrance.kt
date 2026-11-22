@@ -10,27 +10,30 @@ import androidx.compose.ui.unit.dp
 
 /*
  * The launch cascade (DESIGN.md: Launch). As the splash fades, Jadwal settles in from the top: each block
- * fades in and rises 12dp over 280ms, starting 60ms in and 28ms after the block above it.
+ * fades in and rises over 220ms. Indices: 0 header, 1 location card (first run), 2 next prayer,
+ * 3 schedule label, 4-9 the six rows.
  */
-private const val CascadeStartMs = 60f
-private const val CascadeStepMs = 28f
-private const val CascadeItemMs = 280f
-private const val CascadeItems = 10
+private const val CascadeItemMs = 220f
+// When each block starts (ms). Gaps shrink down the page so the group reads as one wave, not a metronome.
+private val CascadeDelayMs = floatArrayOf(0f, 30f, 50f, 70f, 80f, 88f, 94f, 98f, 100f, 100f)
+// The next prayer leads, so it travels furthest; everything else only settles
+private const val LeadIndex = 2
 private val EmphasizedDecelerate = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)
 
 /** The whole cascade, for the clock that drives [LocalLaunchProgress] from 0 to 1. */
-const val LaunchCascadeMs = (CascadeStartMs + (CascadeItems - 1) * CascadeStepMs + CascadeItemMs).toInt()
+val LaunchCascadeMs = (CascadeDelayMs.last() + CascadeItemMs).toInt()
 
 /** Launch progress from 0 to 1; read in the draw phase only. Settled (1) whenever no launch is playing. */
 val LocalLaunchProgress = staticCompositionLocalOf<() -> Float> { { 1f } }
 
-/** Places this block in the launch cascade at [index] (0 is the top of Jadwal). */
+/** Places this block in the launch cascade at [index] (see the index list above). */
 @Composable
 fun Modifier.launchEntrance(index: Int): Modifier {
     val progress = LocalLaunchProgress.current
-    val rise = with(LocalDensity.current) { 12.dp.toPx() }
+    val rise = with(LocalDensity.current) { (if (index == LeadIndex) 12.dp else 6.dp).toPx() }
+    val delay = CascadeDelayMs[index]
     return graphicsLayer {
-        val elapsed = progress() * LaunchCascadeMs - (CascadeStartMs + index * CascadeStepMs)
+        val elapsed = progress() * LaunchCascadeMs - delay
         val e = EmphasizedDecelerate.transform((elapsed / CascadeItemMs).coerceIn(0f, 1f))
         alpha = e
         translationY = (1f - e) * rise

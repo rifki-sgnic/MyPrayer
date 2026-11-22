@@ -197,7 +197,7 @@ fun HomeScreen(
             }
 
             // 2. NEXT PRAYER: the name leads; time and countdown share one line beneath it
-            Box(Modifier.launchEntrance(1)) {
+            Box(Modifier.launchEntrance(2)) {
             NextPrayerBlock(
                 nextPrayerName = schedule.nextPrayerName,
                 nextPrayerTime = nextPrayerTargetTime,
