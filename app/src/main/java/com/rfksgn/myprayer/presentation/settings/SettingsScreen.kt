@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -124,7 +125,9 @@ fun SettingsScreen(
     onFajrAudioSelected: (String?, String) -> Unit,
     onTestAdzan: (ReminderMode, Boolean) -> Unit,
     onStopAdzan: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    // hoisted so re-tapping Setelan in the navigation bar can scroll back to the verdict
+    scrollState: ScrollState = rememberScrollState()
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -223,7 +226,7 @@ fun SettingsScreen(
         modifier = modifier
             .fillMaxSize()
             .background(c.paper)
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
     ) {
         // 1. KESIAPAN ADZAN: satu vonis, lalu izin yang menentukannya
         ReadinessHero(missing = missing, c = c) {

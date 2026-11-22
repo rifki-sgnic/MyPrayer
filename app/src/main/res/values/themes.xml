@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.MyPrayer" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- The window behind Compose takes the page background, so no white frame ever shows -->
+    <style name="Theme.MyPrayer" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/splash_background</item>
+    </style>
+
+    <!-- Launch: the splash on the page background with the theme hub as the mark, then Theme.MyPrayer -->
+    <style name="Theme.MyPrayer.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_mark</item>
+        <item name="postSplashScreenTheme">@style/Theme.MyPrayer</item>
+    </style>
 </resources>

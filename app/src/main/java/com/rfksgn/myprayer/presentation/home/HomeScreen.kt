@@ -76,6 +76,7 @@ import com.rfksgn.myprayer.core.permission.rememberAdzanReadiness
 import com.rfksgn.myprayer.data.local.ThemeMode
 import com.rfksgn.myprayer.domain.model.ReminderMode
 import com.rfksgn.myprayer.ui.theme.SkyStone
+import com.rfksgn.myprayer.ui.theme.launchEntrance
 import com.rfksgn.myprayer.ui.theme.readout
 import com.rfksgn.myprayer.ui.theme.subLine
 import com.rfksgn.myprayer.ui.theme.prayerSky
@@ -155,7 +156,7 @@ fun HomeScreen(
         ) {
           Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             // 1. HEADER: dates with the location under them, and the theme hub at the plate's centre
-            Row(modifier = Modifier.fillMaxWidth()) {
+            Row(modifier = Modifier.fillMaxWidth().launchEntrance(0)) {
                 Column(modifier = Modifier.weight(1f)) {
                   Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
@@ -186,14 +187,17 @@ fun HomeScreen(
 
             // First run: the schedule below is Jakarta's until the user shares a location
             if (uiState.isDefaultLocation) {
-                LocationSetupCard(
-                    cityName = uiState.locationName,
-                    isUpdating = uiState.isUpdatingLocation,
-                    onUseMyLocation = onRefreshLocationClick
-                )
+                Box(Modifier.launchEntrance(1)) {
+                    LocationSetupCard(
+                        cityName = uiState.locationName,
+                        isUpdating = uiState.isUpdatingLocation,
+                        onUseMyLocation = onRefreshLocationClick
+                    )
+                }
             }
 
             // 2. NEXT PRAYER: the name leads; time and countdown share one line beneath it
+            Box(Modifier.launchEntrance(1)) {
             NextPrayerBlock(
                 nextPrayerName = schedule.nextPrayerName,
                 nextPrayerTime = nextPrayerTargetTime,
@@ -204,6 +208,7 @@ fun HomeScreen(
                 activeReminders = activeReminders,
                 onFixReadiness = onOpenSettings
             )
+            }
           }
 
             // 3. SCHEDULE
@@ -214,6 +219,7 @@ fun HomeScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .launchEntrance(3)
                         .padding(horizontal = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -237,20 +243,22 @@ fun HomeScreen(
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    prayers.forEach { item ->
+                    prayers.forEachIndexed { index, item ->
                         val isNext = item.name == schedule.nextPrayerName
                         val isPassed = isPrayerPassed(item.time, currentTime, isNext)
                         val mode = uiState.reminderModes[item.name] ?: ReminderMode.ADZAN
 
-                        PrayerTimelineItem(
-                            name = item.name,
-                            time = item.time,
-                            isNext = isNext,
-                            isPassed = isPassed,
-                            isSunnah = item.isSunnah,
-                            reminderMode = mode,
-                            onToggleAlarm = { onToggleAlarm(item.name) }
-                        )
+                        Box(Modifier.launchEntrance(4 + index)) {
+                            PrayerTimelineItem(
+                                name = item.name,
+                                time = item.time,
+                                isNext = isNext,
+                                isPassed = isPassed,
+                                isSunnah = item.isSunnah,
+                                reminderMode = mode,
+                                onToggleAlarm = { onToggleAlarm(item.name) }
+                            )
+                        }
                     }
                 }
             }

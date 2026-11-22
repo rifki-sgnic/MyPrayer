@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launch splash, dark. On Android 12+ "night" follows the in-app theme (UiModeManager.setApplicationNightMode). -->
+<resources>
+    <color name="splash_background">#FF0A0F0D</color> <!-- obsidian-bg -->
+    <color name="splash_mark">#FF34D399</color>       <!-- jade-primary -->
+    <color name="splash_halo">#24EAB308</color>       <!-- amber-gold at 14% -->
+    <color name="splash_ring">#4DEAB308</color>       <!-- amber-gold at 30% -->
+</resources>

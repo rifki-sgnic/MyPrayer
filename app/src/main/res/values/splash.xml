@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launch splash, light: the Jadwal page's own background and the theme hub as the mark (DESIGN.md: Launch) -->
+<resources>
+    <color name="splash_background">#FFF6F4EF</color> <!-- limestone-bg -->
+    <color name="splash_mark">#FF0F4C3A</color>       <!-- cypress-primary -->
+    <color name="splash_halo">#24C59B27</color>       <!-- brass-gold at 14% -->
+    <color name="splash_ring">#4DC59B27</color>       <!-- brass-gold at 30% -->
+</resources>

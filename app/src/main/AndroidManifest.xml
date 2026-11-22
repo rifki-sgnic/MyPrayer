@@ -28,7 +28,8 @@
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.MyPrayer"
+            android:theme="@style/Theme.MyPrayer.Starting"
+            android:configChanges="uiMode"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

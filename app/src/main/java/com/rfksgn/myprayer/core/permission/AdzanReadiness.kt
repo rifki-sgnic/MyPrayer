@@ -17,13 +17,20 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 
-/** The permission Home checks: without notifications the adzan's stop control never appears. */
+/**
+ * The permissions the adzan depends on. Home's status row checks notifications (without them the stop control
+ * never appears); the navigation bar's Setelan badge counts both.
+ */
 data class AdzanReadiness(
-    val notifications: Boolean
+    val notifications: Boolean,
+    val exactAlarm: Boolean
 ) {
+    val missing: Int get() = listOf(notifications, exactAlarm).count { !it }
+
     companion object {
         fun check(context: Context) = AdzanReadiness(
-            notifications = checkNotificationPermission(context)
+            notifications = checkNotificationPermission(context),
+            exactAlarm = checkExactAlarmPermission(context)
         )
     }
 }

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Splash mark: the theme hub. A 56dp disc, an 8dp halo and a 1dp ring, centred in the 240dp splash icon box
+     (the visible area is the inner 160dp circle). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="240dp"
+    android:height="240dp"
+    android:viewportWidth="240"
+    android:viewportHeight="240">
+    <path
+        android:strokeColor="@color/splash_halo"
+        android:strokeWidth="8"
+        android:pathData="M88,120a32,32 0,1 0,64 0a32,32 0,1 0,-64 0" />
+    <path
+        android:strokeColor="@color/splash_ring"
+        android:strokeWidth="1"
+        android:pathData="M83.5,120a36.5,36.5 0,1 0,73 0a36.5,36.5 0,1 0,-73 0" />
+    <path
+        android:fillColor="@color/splash_mark"
+        android:pathData="M92,120a28,28 0,1 0,56 0a28,28 0,1 0,-56 0" />
+</vector>
