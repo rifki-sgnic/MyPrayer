@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Setelan Prototypes</title>
+<!-- Prototype harness: four directions for SettingsScreen.kt on the main cypress/limestone palette. 1px = 1dp. Throwaway. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..24,400,0..1,0&display=block">
+<style>
+  :root {
+    --primary: #0F4C3A; --on-primary: #FFFFFF; --secondary: #C59B27; --secondary-container: #DDE6E3;
+    --background: #F6F4EF; --surface: #FFFFFF; --surface-variant: #EDE9E0; --on-surface: #181816; --on-surface-variant: #737067; --outline: #E2DDD2;
+    --error-container: #F9DEDC; --on-error-container: #410E0B;
+    --inverse: #14382E; --on-inverse: #F4F1EA; --inverse-primary: #7FC8A6;
+    --sky: #D8DDE6; --body: #8A93A6; --sky-stone: #5F5C55;
+    --ease: cubic-bezier(.23, 1, .32, 1);
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    --primary: #34D399; --on-primary: #052E16; --secondary: #EAB308; --secondary-container: #1C3329;
+    --background: #0A0F0D; --surface: #121A16; --surface-variant: #1A2620; --on-surface: #F3F4F2; --on-surface-variant: #8A9991; --outline: #23332B;
+    --error-container: #8C1D18; --on-error-container: #F9DEDC;
+    --inverse: #1C3329; --on-inverse: #F3F4F2; --inverse-primary: #34D399;
+    --sky: #111A2A; --body: #D9DEE6; --sky-stone: #8A9991;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 20px 0 88px;
+         background: #8b8f8c; font-family: Roboto, system-ui, sans-serif; }
+  .lab-controls { display: flex; gap: 6px; font: 500 13px Roboto, sans-serif; }
+  .lab-controls button { font: inherit; padding: 6px 10px; border-radius: 8px; border: 1px solid #0003; background: #fff; color: #000; cursor: pointer; }
+  .ms { font-family: 'Material Symbols Outlined'; font-weight: normal; font-style: normal; line-height: 1; display: inline-block; font-size: 20px;
+        font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20; user-select: none; }
+  button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent; }
+  .phone { width: 360px; height: 780px; flex: none; border-radius: 28px; overflow: hidden; box-shadow: 0 20px 60px #0005; display: flex; flex-direction: column; position: relative; background: var(--background); }
+  .screen { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; position: relative; isolation: isolate; color: var(--on-surface); background: var(--background); }
+  .sb { height: 24px; }
+  .tnum { font-variant-numeric: tabular-nums; }
+
+  /* ── Shared bits ── */
+  .press { transition: transform 160ms var(--ease), background-color 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out; cursor: pointer; }
+  .press:active { transform: scale(.97); }
+  .btn-tonal { min-height: 36px; padding: 0 16px; border: 0; border-radius: 10px; background: var(--secondary-container); color: var(--primary); font: 700 13px Roboto; }
+  .btn-text { min-height: 48px; padding: 0 12px; border: 0; border-radius: 10px; background: none; color: var(--primary); font: 700 14px Roboto; }
+  .btn-icon { width: 48px; height: 48px; display: grid; place-items: center; border: 0; border-radius: 50%; background: none; color: var(--on-surface-variant); }
+  .btn-out { flex: 1; min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 0 4px; border: 1px solid var(--outline); border-radius: 10px;
+             background: var(--surface); color: var(--on-surface); font: 600 14px Roboto; }
+  .btn-out .ms { font-size: 18px; color: var(--primary); }
+  .btn-stop { width: 48px; height: 48px; flex: none; display: grid; place-items: center; border: 0; border-radius: 10px; background: var(--error-container); color: var(--on-error-container); }
+  [data-audio]:not([data-custom]) .reset { display: none; }
+  input[type=range].slider { flex: 1; min-width: 0; height: 48px; margin: 0; accent-color: var(--primary); cursor: pointer; }
+  /* !important: variant rules give these elements their own display */
+  [data-perm]:not([data-on]) .perm-on, [data-perm][data-on] .perm-off { display: none !important; }
+  .tile { width: 40px; height: 40px; flex: none; display: grid; place-items: center; border-radius: 10px; background: var(--secondary-container); color: var(--primary); }
+
+  /* Snackbar: harness-wide, sits above the nav bar */
+  .snack { position: absolute; left: 12px; right: 12px; bottom: 92px; z-index: 5; display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 4px 4px 4px 16px;
+           border-radius: 10px; background: var(--inverse); color: var(--on-inverse); font: 500 14px Roboto; box-shadow: 0 4px 12px #0003;
+           opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity 200ms ease-out, transform 200ms var(--ease); }
+  .snack[data-show] { opacity: 1; transform: none; pointer-events: auto; }
+  .snack .grow { flex: 1; } .snack .ms { font-size: 18px; color: var(--inverse-primary); }
+  .snack button { min-height: 40px; padding: 0 12px; border: 0; border-radius: 8px; background: none; color: var(--inverse-primary); font: 700 14px Roboto; cursor: pointer; }
+
+  /* Nav bar with the mihrab niche on Setelan, in the main palette */
+  .navbar { position: relative; height: 80px; flex: none; display: flex; background: var(--surface); border-top: 1px solid var(--outline); }
+  .navbar svg { position: absolute; left: 286px; top: -14px; pointer-events: none; }
+  .nav-item { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 7px; padding-bottom: 21px;
+              font: 500 12px Roboto; color: var(--on-surface-variant); }
+  .nav-item .ms { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; font-size: 24px; }
+  .nav-item.sel { color: var(--primary); } .nav-item.sel .ms { transform: translateY(-8px); font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  .nav-item .dot { position: absolute; top: 9px; left: calc(50% + 8px); width: 6px; height: 6px; border-radius: 50%; background: var(--secondary); opacity: 0; transform: scale(.9);
+                   transition: opacity 150ms ease-out, transform 150ms ease-out; }
+  body[data-missing]:not([data-missing="0"]) .nav-item .dot { opacity: 1; transform: none; }
+
+  /* ════════ V1 · Ledger: grouped paper cards ════════ */
+  .v1 { padding: 8px 20px 24px; display: flex; flex-direction: column; gap: 24px; }
+  .v1 h1 { margin: 8px 0 -8px; font: 700 24px/32px Roboto; }
+  .v1 .sec { display: flex; flex-direction: column; gap: 8px; }
+  .v1 .over { padding: 0 4px; font: 700 11px Roboto; letter-spacing: 1.2px; color: var(--on-surface-variant); text-transform: uppercase; }
+  .v1 .card { background: var(--surface); border: 1px solid var(--outline); border-radius: 18px; padding: 4px 16px; }
+  .v1 .row { display: flex; align-items: center; gap: 12px; min-height: 64px; }
+  .v1 .row + .row, .v1 .card > .row ~ .tests { border-top: 1px solid color-mix(in srgb, var(--outline) 60%, transparent); }
+  .v1 .grow { flex: 1; min-width: 0; }
+  .v1 .t { font: 600 15px/20px Roboto; } .v1 .s { font: 400 13px/18px Roboto; color: var(--on-surface-variant); }
+  .v1 .lbl { font: 500 12px/16px Roboto; color: var(--on-surface-variant); }
+  .v1 .fn { font: 600 15px/20px Roboto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .v1 .verdict { padding-block: 12px; }
+  .v1 .verdict .tile .ms { font-size: 22px; }
+  [data-missing]:not([data-missing="0"]) .v1 .verdict .tile { background: color-mix(in srgb, var(--secondary) 16%, transparent); color: var(--secondary); }
+  .v1 .verdict .t { font-size: 16px; line-height: 24px; }
+  .v1 .ok { display: inline-flex; align-items: center; gap: 4px; font: 500 12px Roboto; color: var(--on-surface-variant); }
+  .v1 .ok .ms { font-size: 16px; color: var(--primary); }
+  .v1 .warn { font-size: 20px; color: var(--secondary); }
+  .v1 .tests { display: flex; gap: 8px; padding: 12px 0; }
+  .v1 .vol { font: 700 15px Roboto; width: 44px; text-align: right; }
+  .v1 .seg { display: flex; gap: 2px; padding: 3px; border-radius: 12px; background: var(--surface-variant); }
+  .v1 .seg button { width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 9px; background: transparent; color: var(--on-surface-variant); }
+  .v1 .seg button[aria-checked="true"] { background: var(--primary); color: var(--on-primary); }
+  .v1 .seg .ms { font-size: 20px; }
+  .v1 [data-mode="silent"] .pn { color: var(--on-surface-variant); }
+
+  /* ════════ V2 · Per waktu: organised around the five prayers, like Jadwal ════════ */
+  .v2 { padding: 8px 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+  .v2 h1 { margin: 8px 0 0; font: 700 24px/32px Roboto; }
+  .v2 .status { display: flex; align-items: center; gap: 8px; min-height: 48px; font: 600 12px Roboto; color: var(--on-surface-variant); border-top: 1px solid color-mix(in srgb, var(--outline) 60%, transparent); }
+  .v2 .status .ms { font-size: 16px; color: var(--primary); }
+  .v2 .fix { border: 1px solid color-mix(in srgb, var(--secondary) 45%, var(--outline)); border-radius: 16px; background: var(--surface); padding: 4px 4px 4px 16px; }
+  .v2 .fix-head { display: flex; align-items: center; gap: 10px; min-height: 48px; font: 600 14px/20px Roboto; }
+  .v2 .fix-head .ms { color: var(--secondary); font-size: 20px; }
+  .v2 .fix .pl { display: flex; align-items: center; gap: 12px; min-height: 52px; padding-right: 8px; border-top: 1px solid color-mix(in srgb, var(--outline) 60%, transparent); }
+  .v2 .fix .pl[data-on] { display: none; }
+  .v2 .fix .pl > .ms { font-size: 18px; color: var(--secondary); }
+  .v2 .fix .pl .grow { flex: 1; } .v2 .fix .t { font: 600 14px/20px Roboto; } .v2 .fix .s { font: 400 12px/16px Roboto; color: var(--on-surface-variant); }
+  [data-missing="0"] .v2 .fix, .v2 .status { display: none; } [data-missing="0"] .v2 .status { display: flex; }
+  .v2 .head { display: flex; justify-content: space-between; padding: 0 4px; font: 700 11px Roboto; letter-spacing: 1.2px; color: var(--on-surface-variant); }
+  .v2 .head .hint { font-weight: 500; letter-spacing: .5px; }
+  .v2 .rows { display: flex; flex-direction: column; gap: 8px; }
+  .v2 .prow { background: var(--surface); border: 1px solid var(--outline); border-radius: 16px; transition: border-color 150ms ease-out; }
+  .v2 .prow[data-open] { border-color: var(--primary); box-shadow: 0 0 0 .5px var(--primary); }
+  .v2 .ptop { width: 100%; display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 4px 8px 4px 18px; border: 0; background: none; text-align: left; border-radius: 16px; }
+  .v2 .ptop .n { flex: 1; font: 500 16px Roboto; letter-spacing: .5px; }
+  .v2 .ptop .tm { font: 600 17px Roboto; }
+  .v2 .ptop .mi { width: 40px; display: grid; place-items: center; color: var(--secondary); }
+  .v2 [data-mode="silent"] .ptop .mi { color: color-mix(in srgb, var(--on-surface-variant) 60%, transparent); }
+  .v2 [data-mode="silent"] .ptop .n, .v2 [data-mode="silent"] .ptop .tm { opacity: .62; }
+  .v2 .chev { font-size: 20px; color: var(--on-surface-variant); transition: transform 200ms var(--ease); }
+  .v2 [data-open] .chev { transform: rotate(180deg); }
+  .v2 .acc { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 250ms var(--ease); }
+  .v2 [data-open] .acc { grid-template-rows: 1fr; }
+  .v2 .acc > div { overflow: hidden; }
+  .v2 .accin { padding: 0 12px 12px; display: flex; flex-direction: column; gap: 4px; }
+  .v2 .chips { display: flex; gap: 6px; }
+  .v2 .chips button { flex: 1; min-height: 48px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 1px solid var(--outline);
+                      border-radius: 10px; background: var(--surface); color: var(--on-surface-variant); font: 500 12px Roboto; }
+  .v2 .chips .ms { font-size: 18px; }
+  .v2 .chips button[aria-checked="true"] { background: var(--secondary-container); border-color: transparent; color: var(--primary); font-weight: 700; }
+  .v2 .aud { display: flex; align-items: center; gap: 10px; min-height: 56px; border-top: 1px solid color-mix(in srgb, var(--outline) 60%, transparent); margin-top: 8px; padding-left: 6px; }
+  .v2 .aud .grow { flex: 1; min-width: 0; } .v2 .aud .l { font: 500 12px Roboto; color: var(--on-surface-variant); }
+  .v2 .aud .fn { font: 600 14px/20px Roboto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .v2 .aud .play { width: 40px; height: 40px; flex: none; display: grid; place-items: center; border: 1px solid var(--outline); border-radius: 50%; background: none; color: var(--primary); }
+  .v2 [data-mode="silent"] .aud { opacity: .5; }
+  .v2 .volcard { display: flex; align-items: center; gap: 12px; padding: 4px 4px 4px 16px; background: var(--surface); border: 1px solid var(--outline); border-radius: 16px; }
+  .v2 .volcard .ms { color: var(--primary); } .v2 .volcard .vol { font: 700 15px Roboto; width: 40px; text-align: right; }
+
+  /* ════════ V3 · Astrolabe: sky, plate and instrument readouts ════════ */
+  .v3 { min-height: 100%; position: relative; isolation: isolate; padding-bottom: 28px;
+        background: linear-gradient(180deg, var(--sky) 0, var(--background) 300px) 0 0 / 100% 600px no-repeat, var(--background); }
+  .v3::before { content: ""; position: absolute; z-index: -1; width: 820px; height: 820px; left: calc(316px - 410px); top: calc(64px - 410px); border-radius: 50%;
+    --ln: color-mix(in srgb, var(--body) 25%, transparent);
+    background: repeating-radial-gradient(circle, transparent 0 27px, var(--ln) 27px 28px), repeating-conic-gradient(from 0deg, var(--ln) 0 .2deg, transparent .2deg 15deg);
+    -webkit-mask: radial-gradient(circle, transparent 0 7%, #000 8% 38%, transparent 62%); mask: radial-gradient(circle, transparent 0 7%, #000 8% 38%, transparent 62%); }
+  .v3 .pad { padding: 16px 20px 0; }
+  .v3 .hdr { display: flex; align-items: flex-start; gap: 12px; }
+  .v3 .hdr .grow { flex: 1; }
+  .v3 .kick { font: 700 24px/32px Roboto; }
+  .v3 .where { font: 500 14px/20px Roboto; color: var(--sky-stone); }
+  .v3 .seal { width: 48px; height: 48px; display: grid; place-items: center; flex: none; }
+  .v3 .seal span.d { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--primary); color: var(--background);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--body) 14%, transparent); transition: background-color 300ms ease-out; }
+  [data-missing]:not([data-missing="0"]) .v3 .seal span.d { background: var(--secondary); }
+  .v3 .hero { padding: 96px 0 8px; }
+  .v3 .big { font: 700 80px/.92 Roboto; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+  .v3 .big b { color: var(--secondary); font-weight: 700; }
+  [data-missing="2"] .v3 .big, [data-missing="1"] .v3 .big { font-size: 64px; }
+  .v3 .subl { margin-top: 10px; font: 500 15px/20px Roboto; color: var(--sky-stone); text-wrap: balance; }
+  .v3 .pl { display: flex; align-items: center; gap: 10px; min-height: 52px; border-top: 1px solid color-mix(in srgb, var(--outline) 70%, transparent); font: 600 14px Roboto; }
+  .v3 .pl .grow { flex: 1; } .v3 .pl .s { font: 400 12px/16px Roboto; color: var(--on-surface-variant); }
+  .v3 .pl .ms { font-size: 18px; } .v3 .pl .perm-on .ms, .v3 .pl .perm-on { color: var(--on-surface-variant); } .v3 .pl > .perm-off.ms { color: var(--secondary); }
+  .v3 .pl .perm-on.lbl { font: 500 12px Roboto; }
+  .v3 .pl .btn-tonal { background: var(--primary); color: var(--on-primary); border-radius: 999px; }
+  .v3 .perms { margin-top: 20px; }
+  .v3 h2 { margin: 32px 0 4px; font: 600 16px/24px Roboto; }
+  .v3 .readrow { display: flex; align-items: baseline; justify-content: space-between; }
+  .v3 .readout { font: 700 26px Roboto; font-variant-numeric: tabular-nums; }
+  .v3 .readrow .l { font: 500 12px Roboto; color: var(--on-surface-variant); }
+  .v3 .ruler { position: relative; height: 48px; --v: 70; }
+  .v3 .ruler::before { content: ""; position: absolute; inset: 14px 0 14px; --tk: color-mix(in srgb, var(--on-surface-variant) 55%, transparent);
+    background: repeating-linear-gradient(90deg, var(--tk) 0 1px, transparent 1px calc((100% - 1px) / 20)) bottom / 100% 8px no-repeat,
+                repeating-linear-gradient(90deg, var(--tk) 0 1px, transparent 1px calc((100% - 1px) / 4)) bottom / 100% 20px no-repeat; }
+  .v3 .ruler .fill { position: absolute; left: 0; bottom: 14px; height: 2px; width: calc(var(--v) * 1%); background: var(--primary); border-radius: 1px; }
+  .v3 .ruler .mark { position: absolute; bottom: 10px; left: calc(var(--v) * 1%); width: 3px; height: 28px; margin-left: -1.5px; border-radius: 2px; background: var(--secondary); }
+  .v3 .ruler input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+  .v3 .ruler:has(input:focus-visible) { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px; }
+  .v3 .keys { display: flex; justify-content: space-between; margin-top: 12px; }
+  .v3 .key { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 72px; border: 0; background: none; padding: 0; font: 500 12px Roboto; color: var(--on-surface-variant); }
+  .v3 .key .ms { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--outline); background: var(--surface); color: var(--primary); font-size: 20px; }
+  .v3 .key.stop .ms { background: var(--error-container); border-color: transparent; color: var(--on-error-container); }
+  .v3 .aud { display: flex; align-items: center; gap: 10px; min-height: 56px; border-top: 1px solid color-mix(in srgb, var(--outline) 70%, transparent); }
+  .v3 .aud .grow { flex: 1; min-width: 0; } .v3 .aud .l { font: 500 12px Roboto; color: var(--on-surface-variant); }
+  .v3 .aud .fn { font: 600 14px/20px Roboto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .v3 .auds { margin-top: 20px; }
+  .v3 .dials { display: flex; justify-content: space-between; margin-top: 12px; }
+  .v3 .dial { width: 64px; display: flex; flex-direction: column; align-items: center; gap: 4px; border: 0; background: none; padding: 0; }
+  .v3 .dial .n { font: 600 13px Roboto; } .v3 .dial .tm { font: 500 12px Roboto; color: var(--on-surface-variant); }
+  .v3 .dial .ms { margin: 6px 0 2px; width: 52px; height: 52px; display: grid; place-items: center; border-radius: 50%; font-size: 22px;
+                  background: var(--primary); color: var(--on-primary); border: 1px solid transparent; transition: background-color 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out; }
+  .v3 [data-mode="vibrate"] .ms { background: var(--secondary-container); color: var(--primary); }
+  .v3 [data-mode="silent"] .ms { background: transparent; border-color: var(--outline); color: var(--on-surface-variant); }
+  .v3 [data-mode="silent"] .n { color: var(--on-surface-variant); }
+  .v3 .dial .ml { font: 500 11px Roboto; color: var(--on-surface-variant); }
+  .v3 .note { margin-top: 10px; font: 400 12px/16px Roboto; color: var(--on-surface-variant); text-align: center; }
+
+  /* ════════ V4 · Satu layar: everything on one screen, matrix of modes ════════ */
+  .v4 { padding: 8px 16px 12px; display: flex; flex-direction: column; gap: 12px; }
+  .v4 .top { display: flex; align-items: center; justify-content: space-between; min-height: 48px; padding-left: 4px; }
+  .v4 .top h1 { margin: 0; font: 700 22px Roboto; }
+  .v4 .pill { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px 0 10px; border-radius: 999px; font: 700 12px Roboto; background: var(--secondary-container); color: var(--primary); }
+  .v4 .pill .ms { font-size: 16px; }
+  [data-missing]:not([data-missing="0"]) .v4 .pill { background: transparent; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--secondary) 60%, transparent); color: var(--on-surface); }
+  [data-missing]:not([data-missing="0"]) .v4 .pill .ms { color: var(--secondary); }
+  .v4 .strip { display: grid; grid-template-rows: 1fr; transition: grid-template-rows 250ms var(--ease), margin 250ms var(--ease); }
+  [data-missing="0"] .v4 .strip { grid-template-rows: 0fr; margin-top: -12px; }
+  .v4 .strip > div { overflow: hidden; }
+  .v4 .pl { display: grid; grid-template-rows: 1fr; transition: grid-template-rows 250ms var(--ease); }
+  .v4 .pl[data-on] { grid-template-rows: 0fr; }
+  .v4 .pl > div { overflow: hidden; }
+  .v4 .pli { display: flex; align-items: center; gap: 10px; min-height: 52px; margin-bottom: 4px; padding: 0 6px 0 12px; border-radius: 12px; background: var(--surface-variant); }
+  .v4 .pli .ms { font-size: 18px; color: var(--secondary); }
+  .v4 .pli .grow { flex: 1; } .v4 .pli .t { font: 600 14px/18px Roboto; } .v4 .pli .s { font: 400 12px/16px Roboto; color: var(--on-surface-variant); }
+  .v4 .card { background: var(--surface); border: 1px solid var(--outline); border-radius: 16px; }
+  .v4 .mx { display: grid; grid-template-columns: 1fr 52px 52px 52px; align-items: center; padding: 0 6px 4px 14px; }
+  .v4 .mx .ch { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 0 4px; font: 500 11px Roboto; color: var(--on-surface-variant); }
+  .v4 .mx .ch .ms { font-size: 16px; }
+  .v4 .mx .rn { display: flex; align-items: baseline; gap: 8px; min-height: 48px; border-top: 1px solid color-mix(in srgb, var(--outline) 60%, transparent); padding-top: 14px; }
+  .v4 .mx .rn b { font: 600 15px Roboto; } .v4 .mx .rn span { font: 500 12px Roboto; color: var(--on-surface-variant); }
+  .v4 .mx .rc { height: 48px; display: grid; place-items: center; border: 0; border-top: 1px solid color-mix(in srgb, var(--outline) 60%, transparent); border-radius: 0; background: none; padding: 0; }
+  .v4 .mx .rc i { width: 20px; height: 20px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--on-surface-variant) 70%, transparent); display: grid; place-items: center; transition: border-color 150ms ease-out; }
+  .v4 .mx .rc i::after { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--primary); transform: scale(0); transition: transform 160ms var(--ease); }
+  .v4 .mx .rc[aria-checked="true"] i { border-color: var(--primary); }
+  .v4 .mx .rc[aria-checked="true"] i::after { transform: scale(1); }
+  .v4 .mx .rc:active i { transform: scale(.9); }
+  .v4 [data-mode="silent"].rn b { color: var(--on-surface-variant); }
+  .v4 .ar { display: flex; align-items: center; gap: 8px; min-height: 52px; padding: 0 4px 0 14px; }
+  .v4 .ar + .ar { border-top: 1px solid color-mix(in srgb, var(--outline) 60%, transparent); }
+  .v4 .ar .l { width: 52px; flex: none; font: 500 12px Roboto; color: var(--on-surface-variant); }
+  .v4 .ar .fn { flex: 1; min-width: 0; font: 600 14px Roboto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .v4 .ar .btn-text { min-height: 44px; } .v4 .ar .btn-icon { width: 44px; height: 44px; }
+  .v4 .vr { display: flex; align-items: center; gap: 8px; padding: 0 12px 0 14px; }
+  .v4 .vr .ms { color: var(--primary); } .v4 .vr .vol { width: 40px; text-align: right; font: 700 14px Roboto; }
+  .v4 .tr { display: flex; gap: 6px; padding: 0 8px 8px; }
+  .v4 .tr .btn-out { min-height: 44px; font-size: 13px; } .v4 .tr .btn-stop { width: 44px; height: 44px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .v2 .acc, .v4 .strip, .v4 .pl, .v2 .chev, .snack { transition: none; }
+    .press:active { transform: none; }
+  }
+
+  /* ── Picker (verbatim from PICKER.md) ── */
+  .proto-picker { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 2147483647; display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 999px;
+    background: rgba(10, 10, 10, 0.82); -webkit-backdrop-filter: blur(12px) saturate(1.4); backdrop-filter: blur(12px) saturate(1.4);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) inset, 0 8px 24px rgba(0, 0, 0, 0.24), 0 2px 6px rgba(0, 0, 0, 0.12);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 13px; line-height: 1; -webkit-font-smoothing: antialiased; user-select: none; -webkit-user-select: none; }
+  .proto-picker-highlight { position: absolute; top: 4px; left: 0; height: 28px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); }
+  .proto-picker[data-ready] .proto-picker-highlight { transition: transform 250ms cubic-bezier(0.23, 1, 0.32, 1), width 250ms cubic-bezier(0.23, 1, 0.32, 1); }
+  @media (prefers-reduced-motion: reduce) { .proto-picker[data-ready] .proto-picker-highlight { transition: none; } }
+  .proto-picker-item { position: relative; display: flex; align-items: center; height: 28px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent;
+    color: rgba(255, 255, 255, 0.55); font: inherit; cursor: pointer; transition: color 150ms ease-out, transform 160ms cubic-bezier(0.23, 1, 0.32, 1); }
+  @media (hover: hover) and (pointer: fine) { .proto-picker-item:hover { color: rgba(255, 255, 255, 0.85); } }
+  .proto-picker-item:active { transform: scale(0.97); }
+  .proto-picker-item:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.4); outline-offset: 2px; }
+  .proto-picker-item[data-active] { color: #fff; }
+  .proto-picker-divider { width: 1px; height: 16px; margin: 0 4px; background: rgba(255, 255, 255, 0.12); }
+  .proto-picker-replay { padding: 0 10px; font-size: 14px; }
+  .proto-picker[data-position="top"] { bottom: auto; top: 24px; }
+</style>
+</head>
+<body>
+  <div class="lab-controls">
+    <button type="button" id="theme">HP: Terang</button>
+    <button type="button" id="reset">Cabut izin</button>
+  </div>
+
+  <div class="phone">
+    <div class="screen" id="stage"></div>
+    <div class="snack" role="status"><span class="ms">volume_up</span><span class="grow" data-bind="playing"></span><button type="button" data-act="stop">Hentikan</button></div>
+    <nav class="navbar" aria-label="Navigasi">
+      <svg width="58" height="58" viewBox="0 0 58 58" aria-hidden="true">
+        <defs><linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset=".62" stop-color="#fff"/><stop offset=".96" stop-color="#fff" stop-opacity="0"/></linearGradient>
+          <mask id="m"><rect width="58" height="58" fill="url(#fade)"/></mask></defs>
+        <g mask="url(#m)">
+          <path d="M2 58V27C2 15 15 6.5 29 1C43 6.5 56 15 56 27V58Z" fill="var(--secondary-container)"/>
+          <path d="M2 58V27C2 15 15 6.5 29 1C43 6.5 56 15 56 27V58" fill="none" stroke="var(--primary)" stroke-opacity=".4"/>
+          <path d="M7 58V29C7 19 18 12 29 7.5C40 12 51 19 51 29V58" fill="none" stroke="var(--primary)" stroke-opacity=".18"/>
+        </g>
+      </svg>
+      <div class="nav-item"><span class="ms">calendar_month</span>Jadwal</div>
+      <div class="nav-item"><span class="ms">explore</span>Kiblat</div>
+      <div class="nav-item"><span class="ms">menu_book</span>Al-Quran</div>
+      <div class="nav-item sel"><span class="ms">settings</span>Setelan<span class="dot"></span></div>
+    </nav>
+  </div>
+
+  <nav class="proto-picker" aria-label="Prototype variants">
+    <span class="proto-picker-highlight" aria-hidden="true"></span>
+    <button class="proto-picker-item" data-active aria-current="true">Ledger</button>
+    <button class="proto-picker-item">Per waktu</button>
+    <button class="proto-picker-item">Astrolabe</button>
+    <button class="proto-picker-item">Satu layar</button>
+  </nav>
+
+<script>
+// ── Shared state: every variant reads and writes the same settings ──
+const S = {
+  perms: { notif: false, exact: false },
+  modes: { Subuh: 'adzan', Dzuhur: 'adzan', Ashar: 'vibrate', Maghrib: 'adzan', Isya: 'adzan' },
+  vol: 70, audio: { fajr: null, regular: null }, playing: null, open: null
+};
+const PRAYERS = [['Subuh', '04:01'], ['Dzuhur', '11:38'], ['Ashar', '14:57'], ['Maghrib', '17:52'], ['Isya', '19:12']];
+const MODES = {
+  adzan: { icon: 'notifications_active', label: 'Suara adzan', short: 'Adzan' },
+  vibrate: { icon: 'vibration', label: 'Getar saja', short: 'Getar' },
+  silent: { icon: 'notifications_off', label: 'Nonaktif', short: 'Mati' }
+};
+const ORDER = ['adzan', 'vibrate', 'silent'];
+const PERMS = [['notif', 'Notifikasi', 'Agar tombol hentikan adzan muncul'], ['exact', 'Alarm tepat waktu', 'Agar adzan tidak terlambat']];
+const CUSTOM = { fajr: 'Subuh_Mishary_Alafasy.mp3', regular: 'Adzan_Makkah_Ali_Mulla.mp3' };
+const DEFAULT = { fajr: 'Adzan Subuh bawaan', regular: 'Adzan bawaan' };
+const TESTS = { regular: 'Memutar adzan reguler', fajr: 'Memutar adzan Subuh', vibrate: 'Menguji getar' };
+
+const missing = () => PERMS.filter(([k]) => !S.perms[k]).length;
+const fname = slot => S.audio[slot] ?? DEFAULT[slot];
+const ms = (name, extra = '') => `<span class="ms ${extra}" aria-hidden="true">${name}</span>`;
+const B = {
+  missing: () => missing(),
+  playing: () => S.playing ? TESTS[S.playing] + '…' : '',
+  vol: () => S.vol + '%',
+  fajr: () => fname('fajr'), regular: () => fname('regular'),
+  verdict: () => missing() ? `${missing()} izin belum aktif` : 'Adzan siap tepat waktu',
+  verdictSub: () => missing() ? 'Tanpa izin ini adzan bisa terlambat atau tidak berbunyi.' : 'Semua izin aktif. Adzan tetap berbunyi saat HP terkunci.',
+  verdictIcon: () => missing() ? 'error' : 'verified',
+  big: () => missing() ? `<b>${missing()}</b> izin` : 'Siap',
+  bigSub: () => missing() ? 'belum aktif. Adzan bisa terlambat atau tidak berbunyi saat HP terkunci.' : 'Adzan berbunyi tepat waktu, walau HP terkunci.',
+  seal: () => missing() ? `<b style="font:700 18px Roboto">${missing()}</b>` : 'check',
+  pill: () => missing() ? `${ms('error')}${missing()} izin` : `${ms('check_circle')}Siap`,
+  active: () => `${PRAYERS.filter(([p]) => S.modes[p] !== 'silent').length} waktu berbunyi`,
+  mlabel: p => MODES[S.modes[p]].label, mshort: p => MODES[S.modes[p]].short, micon: p => MODES[S.modes[p]].icon
+};
+
+// ── Snippets reused across variants ──
+const permLine = ([k, t, h], cls) => `<div class="${cls}" data-perm="${k}">${cls === 'pl' ? ms('error', 'perm-off') + ms('check_circle', 'perm-on') : ''}
+  <div class="grow"><div class="t">${t}</div><div class="s perm-off">${h}</div></div>
+  <span class="lbl perm-on">Aktif</span><button type="button" class="btn-tonal press perm-off" data-act="perm:${k}" aria-label="Aktifkan ${t}">Aktifkan</button></div>`;
+const audioCtrls = (slot, label) => `<button type="button" class="btn-icon press reset" data-act="reset:${slot}" aria-label="Kembalikan audio ${label} bawaan">${ms('restore')}</button>
+  <button type="button" class="btn-text press" data-act="pick:${slot}" aria-label="Ganti audio adzan ${label}">Ganti</button>`;
+const volInput = (cls = 'slider') => `<input type="range" class="${cls}" min="5" max="100" step="1" data-act="vol" aria-label="Volume alarm adzan">`;
+
+// ── V1 · Ledger ──
+function v1() {
+  const seg = p => `<div class="seg" role="radiogroup" aria-label="Pengingat ${p}">${ORDER.map(m =>
+    `<button type="button" role="radio" class="press" data-act="mode:${p}:${m}" aria-label="${MODES[m].label}">${ms(MODES[m].icon)}</button>`).join('')}</div>`;
+  return `<div class="sb"></div><div class="v1">
+    <h1>Setelan</h1>
+    <div class="card">
+      <div class="row verdict"><span class="tile"><span class="ms" data-bind="verdictIcon"></span></span><div class="grow"><div class="t" data-bind="verdict"></div><div class="s" data-bind="verdictSub"></div></div></div>
+      ${PERMS.map(p => `<div class="row" data-perm="${p[0]}">${ms('error', 'warn perm-off')}${ms('check_circle', 'perm-on')}
+        <div class="grow"><div class="t">${p[1]}</div><div class="s perm-off">${p[2]}</div></div>
+        <span class="ok perm-on">Aktif</span><button type="button" class="btn-tonal press perm-off" data-act="perm:${p[0]}" aria-label="Aktifkan ${p[1]}">Aktifkan</button></div>`).join('')}
+    </div>
+    <section class="sec"><div class="over">Suara adzan</div><div class="card">
+      <div class="row" data-audio="fajr"><span class="tile">${ms('wb_twilight')}</span><div class="grow"><div class="lbl">Subuh</div><div class="fn" data-bind="fajr"></div></div>${audioCtrls('fajr', 'Subuh')}</div>
+      <div class="row" data-audio="regular"><span class="tile">${ms('music_note')}</span><div class="grow"><div class="lbl">Dzuhur, Ashar, Maghrib, Isya</div><div class="fn" data-bind="regular"></div></div>${audioCtrls('regular', 'reguler')}</div>
+      <div class="row"><span class="tile">${ms('volume_up')}</span>${volInput()}<span class="vol tnum" data-bind="vol"></span></div>
+      <div class="tests">
+        <button type="button" class="btn-out press" data-act="test:regular">${ms('play_arrow')}Reguler</button>
+        <button type="button" class="btn-out press" data-act="test:fajr">${ms('play_arrow')}Subuh</button>
+        <button type="button" class="btn-out press" data-act="test:vibrate">${ms('vibration')}Getar</button>
+        <button type="button" class="btn-stop press" data-act="stop" aria-label="Hentikan adzan">${ms('stop')}</button>
+      </div>
+    </div></section>
+    <section class="sec"><div class="over">Pengingat tiap waktu</div><div class="card">
+      ${PRAYERS.map(([p, t]) => `<div class="row" data-prayer="${p}"><div class="grow"><div class="t pn" style="font-size:17px;font-weight:700">${p} <span class="lbl tnum" style="font-weight:500">${t}</span></div>
+        <div class="lbl" data-bind="mlabel:${p}"></div></div>${seg(p)}</div>`).join('')}
+    </div></section>
+  </div>`;
+}
+
+// ── V2 · Per waktu ──
+function v2() {
+  return `<div class="sb"></div><div class="v2">
+    <h1>Setelan</h1>
+    <div class="status">${ms('check_circle')}<span>Adzan siap · semua izin aktif</span></div>
+    <div class="fix"><div class="fix-head">${ms('error')}<span><span data-bind="verdict"></span>. Adzan bisa terlambat.</span></div>
+      ${PERMS.map(p => permLine(p, 'pl')).join('')}</div>
+    <section style="display:flex;flex-direction:column;gap:12px">
+      <div class="head"><span>PENGINGAT TIAP WAKTU</span><span class="hint">Ketuk untuk atur</span></div>
+      <div class="rows">${PRAYERS.map(([p, t]) => {
+        const slot = p === 'Subuh' ? 'fajr' : 'regular';
+        return `<div class="prow" data-prayer="${p}">
+          <button type="button" class="ptop" data-act="open:${p}" aria-expanded="false"><span class="n">${p}</span><span class="tm tnum">${t}</span>
+            <span class="mi"><span class="ms" data-bind="micon:${p}"></span></span>${ms('expand_more', 'chev')}</button>
+          <div class="acc"><div><div class="accin">
+            <div class="chips" role="radiogroup" aria-label="Pengingat ${p}">${ORDER.map(m =>
+              `<button type="button" role="radio" class="press" data-act="mode:${p}:${m}">${ms(MODES[m].icon)}${MODES[m].short}</button>`).join('')}</div>
+            <div class="aud" data-audio="${slot}"><div class="grow"><div class="l">${p === 'Subuh' ? 'Suara khusus Subuh' : 'Sama untuk Dzuhur sampai Isya'}</div><div class="fn" data-bind="${slot}"></div></div>
+              <button type="button" class="play press" data-act="test:${slot}" aria-label="Tes suara ${p}">${ms('play_arrow')}</button>${audioCtrls(slot, p)}</div>
+          </div></div></div></div>`; }).join('')}</div>
+    </section>
+    <div class="volcard">${ms('volume_up')}${volInput()}<span class="vol tnum" data-bind="vol"></span>
+      <button type="button" class="btn-icon press" data-act="test:vibrate" aria-label="Tes getar">${ms('vibration')}</button></div>
+  </div>`;
+}
+
+// ── V3 · Astrolabe ──
+function v3() {
+  return `<div class="v3"><div class="sb"></div><div class="pad">
+    <div class="hdr"><div class="grow"><div class="kick">Setelan</div><div class="where" data-bind="active"></div></div>
+      <span class="seal" aria-hidden="true"><span class="d"><span class="ms" data-bind="seal"></span></span></span></div>
+    <div class="hero"><div class="big" data-bind="big" role="heading" aria-level="1"></div><div class="subl" data-bind="bigSub"></div></div>
+    <div class="perms">${PERMS.map(p => permLine(p, 'pl')).join('')}</div>
+
+    <h2>Suara</h2>
+    <div class="readrow"><span class="l">Volume alarm adzan</span><span class="readout" data-bind="vol"></span></div>
+    <div class="ruler"><span class="fill"></span><span class="mark"></span>${volInput('')}</div>
+    <div class="keys">
+      <button type="button" class="key press" data-act="test:regular">${ms('play_arrow')}Reguler</button>
+      <button type="button" class="key press" data-act="test:fajr">${ms('wb_twilight')}Subuh</button>
+      <button type="button" class="key press" data-act="test:vibrate">${ms('vibration')}Getar</button>
+      <button type="button" class="key stop press" data-act="stop">${ms('stop')}Hentikan</button>
+    </div>
+    <div class="auds">
+      <div class="aud" data-audio="fajr"><div class="grow"><div class="l">Subuh</div><div class="fn" data-bind="fajr"></div></div>${audioCtrls('fajr', 'Subuh')}</div>
+      <div class="aud" data-audio="regular"><div class="grow"><div class="l">Dzuhur sampai Isya</div><div class="fn" data-bind="regular"></div></div>${audioCtrls('regular', 'reguler')}</div>
+    </div>
+
+    <h2>Pengingat</h2>
+    <div class="dials">${PRAYERS.map(([p, t]) => `<button type="button" class="dial press" data-prayer="${p}" data-act="cycle:${p}">
+      <span class="n">${p}</span><span class="tm tnum">${t}</span><span class="ms" data-bind="micon:${p}"></span><span class="ml" data-bind="mshort:${p}"></span></button>`).join('')}</div>
+    <div class="note">Ketuk untuk berganti: adzan, getar, mati.</div>
+  </div></div>`;
+}
+
+// ── V4 · Satu layar ──
+function v4() {
+  return `<div class="sb"></div><div class="v4">
+    <div class="top"><h1>Setelan</h1><span class="pill" data-bind="pill"></span></div>
+    <div class="strip"><div>${PERMS.map(([k, t, h]) => `<div class="pl" data-perm="${k}"><div><div class="pli">${ms('error')}
+      <div class="grow"><div class="t">${t}</div><div class="s">${h}</div></div><button type="button" class="btn-tonal press" data-act="perm:${k}" aria-label="Aktifkan ${t}">Aktifkan</button></div></div></div>`).join('')}</div></div>
+    <div class="card"><div class="mx" role="grid" aria-label="Pengingat tiap waktu">
+      <span></span>${ORDER.map(m => `<span class="ch">${ms(MODES[m].icon)}${MODES[m].short}</span>`).join('')}
+      ${PRAYERS.map(([p, t]) => `<div class="rn" data-prayer="${p}"><b>${p}</b><span class="tnum">${t}</span></div>` + ORDER.map(m =>
+        `<button type="button" class="rc" role="radio" data-act="mode:${p}:${m}" aria-label="${p}: ${MODES[m].label}"><i></i></button>`).join('')).join('')}
+    </div></div>
+    <div class="card">
+      <div class="ar" data-audio="fajr"><span class="l">Subuh</span><span class="fn" data-bind="fajr"></span>${audioCtrls('fajr', 'Subuh')}</div>
+      <div class="ar" data-audio="regular"><span class="l">Lainnya</span><span class="fn" data-bind="regular"></span>${audioCtrls('regular', 'reguler')}</div>
+    </div>
+    <div class="card">
+      <div class="vr">${ms('volume_up')}${volInput()}<span class="vol tnum" data-bind="vol"></span></div>
+      <div class="tr">
+        <button type="button" class="btn-out press" data-act="test:regular">${ms('play_arrow')}Reguler</button>
+        <button type="button" class="btn-out press" data-act="test:fajr">${ms('play_arrow')}Subuh</button>
+        <button type="button" class="btn-out press" data-act="test:vibrate">${ms('vibration')}Getar</button>
+        <button type="button" class="btn-stop press" data-act="stop" aria-label="Hentikan adzan">${ms('stop')}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── Sync: state → DOM, so CSS transitions run instead of re-rendering ──
+function sync() {
+  document.body.dataset.missing = missing();
+  document.querySelectorAll('[data-perm]').forEach(el => el.toggleAttribute('data-on', S.perms[el.dataset.perm]));
+  document.querySelectorAll('[data-prayer]').forEach(el => {
+    el.dataset.mode = S.modes[el.dataset.prayer];
+    const open = S.open === el.dataset.prayer;
+    el.toggleAttribute('data-open', open);
+    el.querySelector('[aria-expanded]')?.setAttribute('aria-expanded', open);
+  });
+  document.querySelectorAll('[data-act^="mode:"]').forEach(el => {
+    const [, p, m] = el.dataset.act.split(':');
+    el.setAttribute('aria-checked', S.modes[p] === m);
+  });
+  document.querySelectorAll('[data-audio]').forEach(el => el.toggleAttribute('data-custom', S.audio[el.dataset.audio] != null));
+  document.querySelectorAll('[data-bind]').forEach(el => {
+    const [k, arg] = el.dataset.bind.split(':');
+    const v = String(B[k](arg));
+    if (el.innerHTML !== v) el.innerHTML = v;
+  });
+  document.querySelectorAll('[data-act="vol"]').forEach(el => { if (+el.value !== S.vol) el.value = S.vol; });
+  document.querySelectorAll('.ruler').forEach(el => el.style.setProperty('--v', S.vol));
+  document.querySelector('.snack').toggleAttribute('data-show', !!S.playing);
+}
+
+let playTimer;
+function act(a) {
+  const [k, x, y] = a.split(':');
+  if (k === 'perm') S.perms[x] = true;
+  else if (k === 'mode') S.modes[x] = y;
+  else if (k === 'cycle') S.modes[x] = ORDER[(ORDER.indexOf(S.modes[x]) + 1) % 3];
+  else if (k === 'pick') S.audio[x] = CUSTOM[x];
+  else if (k === 'reset') S.audio[x] = null;
+  else if (k === 'open') S.open = S.open === x ? null : x;
+  else if (k === 'test') { S.playing = x; clearTimeout(playTimer); playTimer = setTimeout(() => { S.playing = null; sync(); }, 6000); }
+  else if (k === 'stop') { S.playing = null; clearTimeout(playTimer); }
+  sync();
+}
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if (el && el.dataset.act !== 'vol') act(el.dataset.act);
+});
+document.addEventListener('input', e => { if (e.target.dataset.act === 'vol') { S.vol = +e.target.value; sync(); } });
+document.getElementById('reset').onclick = () => { S.perms = { notif: false, exact: false }; sync(); };
+const themeBtn = document.getElementById('theme');
+themeBtn.onclick = () => {
+  const dark = document.documentElement.dataset.theme !== 'dark';
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  themeBtn.textContent = dark ? 'HP: Gelap' : 'HP: Terang';
+};
+
+// ── Picker wiring (PICKER.md reference, with sync after mount) ──
+const variants = [v1, v2, v3, v4];
+const stage = document.getElementById('stage');
+const picker = document.querySelector('.proto-picker');
+const highlight = picker.querySelector('.proto-picker-highlight');
+const items = [...picker.querySelectorAll('.proto-picker-item:not(.proto-picker-replay)')];
+const replay = picker.querySelector('.proto-picker-replay');
+let current = 0;
+
+function moveHighlight() {
+  const el = items[current];
+  highlight.style.width = el.offsetWidth + 'px';
+  highlight.style.transform = `translateX(${el.offsetLeft}px)`;
+}
+function mount(i) {
+  stage.innerHTML = '';
+  requestAnimationFrame(() => { stage.innerHTML = variants[i](); stage.scrollTop = 0; sync(); });
+}
+function setActive(i) {
+  if (i < 0 || i >= variants.length) return;
+  current = i;
+  items.forEach((el, j) => {
+    el.toggleAttribute('data-active', j === i);
+    if (j === i) el.setAttribute('aria-current', 'true');
+    else el.removeAttribute('aria-current');
+  });
+  moveHighlight();
+  const url = new URL(location);
+  url.searchParams.set('v', i + 1);
+  history.replaceState(null, '', url);
+  mount(i);
+}
+items.forEach((el, i) => el.addEventListener('click', () => setActive(i)));
+replay?.addEventListener('click', () => mount(current));
+window.addEventListener('resize', moveHighlight);
+document.addEventListener('keydown', (e) => {
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable) return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const num = parseInt(e.key, 10);
+  if (num >= 1 && num <= variants.length) setActive(num - 1);
+  else if (e.key === 'ArrowRight') setActive((current + 1) % variants.length);
+  else if (e.key === 'ArrowLeft') setActive((current - 1 + variants.length) % variants.length);
+  else if (e.key === 'r' || e.key === 'R') mount(current);
+});
+const requested = parseInt(new URLSearchParams(location.search).get('v'), 10);
+setActive(requested >= 1 && requested <= variants.length ? requested - 1 : 0);
+requestAnimationFrame(() => requestAnimationFrame(() => picker.setAttribute('data-ready', '')));
+</script>
+</body>
+</html>

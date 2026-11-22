@@ -293,7 +293,7 @@ class MainActivity : ComponentActivity() {
                         // The surah reader is full screen; its own back button returns to the list
                         AnimatedVisibility(
                             visible = !(selectedTab == 2 && quranUiState.isReaderActive),
-                            enter = slideInVertically(tween(300, easing = EmphasizedEasing)) { it },
+                            enter = slideInVertically(tween(250, easing = EmphasizedEasing)) { it },
                             exit = slideOutVertically(tween(200, easing = EmphasizedEasing)) { it }
                         ) {
                         AppNavigationBar(
@@ -404,10 +404,8 @@ class MainActivity : ComponentActivity() {
                             onToggleShowLatin = quranViewModel::toggleShowLatin,
                             onSetArabicSize = quranViewModel::setArabicSize,
                             onDownloadFullQuran = quranViewModel::downloadAll30JuzOffline,
-                            // The reader never pads for the bar, so the bar slides over it without the content jumping
-                            modifier = if (quranUiState.isReaderActive) {
-                                Modifier.padding(top = innerPadding.calculateTopPadding()).navigationBarsPadding()
-                            } else Modifier.padding(innerPadding)
+                            // Each side of the list/reader transition picks its own padding from this
+                            contentPadding = innerPadding
                         ) } }
 
                         3 -> SettingsScreen(

@@ -94,20 +94,21 @@ class QuranViewModel(
 
     fun openSurah(surahNumber: Int, targetAyah: Int = 1) {
         activeSurahJob?.cancel()
+        // Switch to the reader now, so the open transition doesn't wait on the database read below
+        val listedSurah = _uiState.value.surahs.find { it.number == surahNumber }
+        _uiState.update {
+            it.copy(
+                activeSurahNumber = surahNumber,
+                activeSurah = listedSurah,
+                activeAyahs = emptyList(),
+                isLoadingSurah = listedSurah == null,
+                surahLoadError = null,
+                initialScrollAyah = targetAyah
+            )
+        }
         activeSurahJob = viewModelScope.launch {
-            val cachedSurah = repository.getSurahByNumber(surahNumber)
-                ?: _uiState.value.surahs.find { it.number == surahNumber }
-
-            _uiState.update {
-                it.copy(
-                    activeSurahNumber = surahNumber,
-                    activeSurah = cachedSurah,
-                    activeAyahs = emptyList(),
-                    isLoadingSurah = cachedSurah == null,
-                    surahLoadError = null,
-                    initialScrollAyah = targetAyah
-                )
-            }
+            val cachedSurah = repository.getSurahByNumber(surahNumber) ?: listedSurah
+            _uiState.update { it.copy(activeSurah = cachedSurah, isLoadingSurah = cachedSurah == null) }
 
             // Immediately observe local database cache
             launch {

@@ -1,6 +1,7 @@
 package com.rfksgn.myprayer.presentation.quran
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
@@ -12,9 +13,12 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -171,271 +175,298 @@ fun QuranScreen(
     onToggleShowLatin: () -> Unit,
     onSetArabicSize: (Int) -> Unit,
     onDownloadFullQuran: () -> Unit,
+    // The list pads for the bars; the reader pads only the top and the system nav bar, so the app bar
+    // slides over it without the content jumping
+    contentPadding: PaddingValues = PaddingValues(),
     modifier: Modifier = Modifier
 ) {
     val surahMap = remember(uiState.surahs) {
         uiState.surahs.associateBy { it.number }
     }
+    // Held above the reader, so back returns to the surah that was opened instead of Al-Fatihah
+    val surahListState = rememberLazyListState()
 
-    if (uiState.isReaderActive) {
-        BackHandler(onBack = onCloseSurah)
-
-        val currentNum = uiState.activeSurahNumber ?: uiState.activeSurah?.number ?: 1
-        val prevSurah = remember(currentNum, surahMap) { surahMap[currentNum - 1] }
-        val nextSurah = remember(currentNum, surahMap) { surahMap[currentNum + 1] }
-
-        SurahReaderView(
-            surah = uiState.activeSurah,
-            targetSurahNumber = currentNum,
-            prevSurah = prevSurah,
-            nextSurah = nextSurah,
-            ayahs = uiState.activeAyahs,
-            initialScrollAyah = uiState.initialScrollAyah,
-            lastReadAyahNumber = if (uiState.lastRead.surahNumber == uiState.activeSurah?.number) {
-                uiState.lastRead.ayahNumber
-            } else -1,
-            showLatin = uiState.showLatin,
-            arabicSize = uiState.arabicSize,
-            isLoading = uiState.isLoadingSurah,
-            errorMessage = uiState.surahLoadError,
-            onBackClick = onCloseSurah,
-            onRetry = { onOpenSurah(currentNum, uiState.initialScrollAyah) },
-            onNavigateSurah = { targetSurahNumber -> onOpenSurah(targetSurahNumber, 1) },
-            onToggleShowLatin = onToggleShowLatin,
-            onSetArabicSize = onSetArabicSize,
-            onToggleBookmark = onToggleBookmark,
-            onMarkLastRead = { ayahNum ->
-                val surah = uiState.activeSurah
-                if (surah != null) onMarkLastRead(surah, ayahNum)
-            },
-            modifier = modifier
-        )
-        return
-    }
-
-    val filteredSurahs = remember(uiState.surahs, uiState.searchQuery) {
-        val q = uiState.searchQuery.trim()
-        if (q.isEmpty()) {
-            uiState.surahs
-        } else {
-            uiState.surahs.filter {
-                it.nameLatin.contains(q, ignoreCase = true) ||
-                        it.nameTranslation.contains(q, ignoreCase = true) ||
-                        it.number.toString() == q
+    // Into a surah is a step in depth, not sideways like the tabs: the reader settles in from 96% while
+    // the list fades away, and back reverses it a little quicker. "Remove animations" makes it a cut.
+    AnimatedContent(
+        targetState = uiState.isReaderActive,
+        transitionSpec = {
+            if (targetState) {
+                (fadeIn(tween(210, delayMillis = 60)) +
+                        scaleIn(tween(260, easing = EaseOutExpo), initialScale = 0.96f)) togetherWith
+                        fadeOut(tween(90))
+            } else {
+                fadeIn(tween(150, delayMillis = 50)) togetherWith
+                        (fadeOut(tween(150)) + scaleOut(tween(200, easing = EaseOutExpo), targetScale = 0.96f))
             }
-        }
-    }
+        },
+        modifier = modifier,
+        label = "quranDepth"
+    ) { reader ->
+        if (reader) {
+            // The exiting reader stays composed during the back transition; it must not take a second back press
+            BackHandler(enabled = uiState.isReaderActive, onBack = onCloseSurah)
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 22.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        // 1. HEADER TITLE & OFFLINE SYNC ACTION
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Al-Quran",
-                style = TextStyle(
-                    fontFamily = FontFamily.Serif,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            )
+            val currentNum = uiState.activeSurahNumber ?: uiState.activeSurah?.number ?: 1
+            val prevSurah = remember(currentNum, surahMap) { surahMap[currentNum - 1] }
+            val nextSurah = remember(currentNum, surahMap) { surahMap[currentNum + 1] }
 
-            Surface(
-                onClick = onDownloadFullQuran,
-                enabled = !uiState.isDownloadingFullQuran,
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surface,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    if (uiState.isDownloadingFullQuran) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(13.dp),
-                            strokeWidth = 1.5.dp,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.CloudDownload,
-                            contentDescription = "Simpan 30 Juz Offline",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(15.dp)
-                        )
-                    }
-                    Text(
-                        text = uiState.downloadProgressText ?: "Simpan 30 Juz",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-        }
-
-        // 2. SEARCH BAR PILL
-        OutlinedTextField(
-            value = uiState.searchQuery,
-            onValueChange = onSearchQueryChange,
-            placeholder = {
-                Text(
-                    text = "Cari Surah atau nomor...",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            },
-            trailingIcon = {
-                if (uiState.searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { onSearchQueryChange("") }) {
-                        Icon(Icons.Default.Close, contentDescription = "Hapus")
-                    }
-                }
-            },
-            singleLine = true,
-            shape = CircleShape,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline
-            ),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        // 3. TERRACOTTA "TERAKHIR DIBACA" BANNER CARD
-        Surface(
-            onClick = {
-                onOpenSurah(uiState.lastRead.surahNumber, uiState.lastRead.ayahNumber)
-            },
-            shape = CardShape22,
-            color = MaterialTheme.colorScheme.primaryContainer,
-            shadowElevation = 3.dp,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(
+            SurahReaderView(
+                surah = uiState.activeSurah,
+                targetSurahNumber = currentNum,
+                prevSurah = prevSurah,
+                nextSurah = nextSurah,
+                ayahs = uiState.activeAyahs,
+                initialScrollAyah = uiState.initialScrollAyah,
+                lastReadAyahNumber = if (uiState.lastRead.surahNumber == uiState.activeSurah?.number) {
+                    uiState.lastRead.ayahNumber
+                } else -1,
+                showLatin = uiState.showLatin,
+                arabicSize = uiState.arabicSize,
+                isLoading = uiState.isLoadingSurah,
+                errorMessage = uiState.surahLoadError,
+                onBackClick = onCloseSurah,
+                onRetry = { onOpenSurah(currentNum, uiState.initialScrollAyah) },
+                onNavigateSurah = { targetSurahNumber -> onOpenSurah(targetSurahNumber, 1) },
+                onToggleShowLatin = onToggleShowLatin,
+                onSetArabicSize = onSetArabicSize,
+                onToggleBookmark = onToggleBookmark,
+                onMarkLastRead = { ayahNum ->
+                    val surah = uiState.activeSurah
+                    if (surah != null) onMarkLastRead(surah, ayahNum)
+                },
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 22.dp, vertical = 18.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(top = contentPadding.calculateTopPadding())
+                    .navigationBarsPadding()
+            )
+        } else {
+            val filteredSurahs = remember(uiState.surahs, uiState.searchQuery) {
+                val q = uiState.searchQuery.trim()
+                if (q.isEmpty()) {
+                    uiState.surahs
+                } else {
+                    uiState.surahs.filter {
+                        it.nameLatin.contains(q, ignoreCase = true) ||
+                                it.nameTranslation.contains(q, ignoreCase = true) ||
+                                it.number.toString() == q
+                    }
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .padding(contentPadding)
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(horizontal = 22.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                // 1. HEADER TITLE & OFFLINE SYNC ACTION
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        text = "Terakhir Dibaca",
+                        text = "Al-Quran",
                         style = TextStyle(
                             fontFamily = FontFamily.Serif,
-                            fontSize = 20.sp,
+                            fontSize = 32.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                     )
-                    Text(
-                        text = "${uiState.lastRead.surahName}: Ayat ${uiState.lastRead.ayahNumber}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f),
-                        fontWeight = FontWeight.Medium
-                    )
-                }
 
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.MenuBook,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(30.dp)
-                )
-            }
-        }
-
-        // 4. FILTER PILLS: DAFTAR SURAH vs BOOKMARK AYAT
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            FilterTabPill(
-                title = "Daftar Surah (${uiState.surahs.size})",
-                selected = uiState.selectedTabIndex == 0,
-                onClick = { onTabSelected(0) },
-                modifier = Modifier.weight(1f)
-            )
-            FilterTabPill(
-                title = "Bookmark (${uiState.bookmarkedAyahs.size})",
-                selected = uiState.selectedTabIndex == 1,
-                onClick = { onTabSelected(1) },
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        // 5. LIST SURAH ATAU LIST BOOKMARK (Dengan contentType untuk optimasi recycling)
-        if (uiState.selectedTabIndex == 0) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                contentPadding = PaddingValues(bottom = 16.dp)
-            ) {
-                items(
-                    items = filteredSurahs,
-                    key = { it.number },
-                    contentType = { "surah_card" }
-                ) { surah ->
-                    val onClickRemembered = remember(surah.number) {
-                        { onOpenSurah(surah.number, 1) }
+                    Surface(
+                        onClick = onDownloadFullQuran,
+                        enabled = !uiState.isDownloadingFullQuran,
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            if (uiState.isDownloadingFullQuran) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(13.dp),
+                                    strokeWidth = 1.5.dp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.CloudDownload,
+                                    contentDescription = "Simpan 30 Juz Offline",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                            }
+                            Text(
+                                text = uiState.downloadProgressText ?: "Simpan 30 Juz",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
-                    SurahItemCard(
-                        surah = surah,
-                        onClick = onClickRemembered
-                    )
                 }
-            }
-        } else {
-            if (uiState.bookmarkedAyahs.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Belum ada ayat yang disimpan ke Bookmark.\nKetuk ayat saat membaca, lalu pilih Simpan ayat.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    contentPadding = PaddingValues(bottom = 16.dp)
-                ) {
-                    items(
-                        items = uiState.bookmarkedAyahs,
-                        key = { it.id },
-                        contentType = { "bookmark_card" }
-                    ) { ayah ->
-                        val surahName = surahMap[ayah.surahNumber]?.nameLatin ?: "Surah ${ayah.surahNumber}"
-                        BookmarkedAyahCard(
-                            surahName = surahName,
-                            ayah = ayah,
-                            onOpenClick = { onOpenSurah(ayah.surahNumber, ayah.ayahNumber) },
-                            onRemoveBookmark = { onToggleBookmark(ayah) }
+
+                // 2. SEARCH BAR PILL
+                OutlinedTextField(
+                    value = uiState.searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    placeholder = {
+                        Text(
+                            text = "Cari Surah atau nomor...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    trailingIcon = {
+                        if (uiState.searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { onSearchQueryChange("") }) {
+                                Icon(Icons.Default.Close, contentDescription = "Hapus")
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    shape = CircleShape,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // 3. TERRACOTTA "TERAKHIR DIBACA" BANNER CARD
+                Surface(
+                    onClick = {
+                        onOpenSurah(uiState.lastRead.surahNumber, uiState.lastRead.ayahNumber)
+                    },
+                    shape = CardShape22,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shadowElevation = 3.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 22.dp, vertical = 18.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "Terakhir Dibaca",
+                                style = TextStyle(
+                                    fontFamily = FontFamily.Serif,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            )
+                            Text(
+                                text = "${uiState.lastRead.surahName}: Ayat ${uiState.lastRead.ayahNumber}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f),
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(30.dp)
+                        )
+                    }
+                }
+
+                // 4. FILTER PILLS: DAFTAR SURAH vs BOOKMARK AYAT
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    FilterTabPill(
+                        title = "Daftar Surah (${uiState.surahs.size})",
+                        selected = uiState.selectedTabIndex == 0,
+                        onClick = { onTabSelected(0) },
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterTabPill(
+                        title = "Bookmark (${uiState.bookmarkedAyahs.size})",
+                        selected = uiState.selectedTabIndex == 1,
+                        onClick = { onTabSelected(1) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                // 5. LIST SURAH ATAU LIST BOOKMARK (Dengan contentType untuk optimasi recycling)
+                if (uiState.selectedTabIndex == 0) {
+                    LazyColumn(
+                        state = surahListState,
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = PaddingValues(bottom = 16.dp)
+                    ) {
+                        items(
+                            items = filteredSurahs,
+                            key = { it.number },
+                            contentType = { "surah_card" }
+                        ) { surah ->
+                            val onClickRemembered = remember(surah.number) {
+                                { onOpenSurah(surah.number, 1) }
+                            }
+                            SurahItemCard(
+                                surah = surah,
+                                onClick = onClickRemembered
+                            )
+                        }
+                    }
+                } else {
+                    if (uiState.bookmarkedAyahs.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Belum ada ayat yang disimpan ke Bookmark.\nKetuk ayat saat membaca, lalu pilih Simpan ayat.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            contentPadding = PaddingValues(bottom = 16.dp)
+                        ) {
+                            items(
+                                items = uiState.bookmarkedAyahs,
+                                key = { it.id },
+                                contentType = { "bookmark_card" }
+                            ) { ayah ->
+                                val surahName = surahMap[ayah.surahNumber]?.nameLatin ?: "Surah ${ayah.surahNumber}"
+                                BookmarkedAyahCard(
+                                    surahName = surahName,
+                                    ayah = ayah,
+                                    onOpenClick = { onOpenSurah(ayah.surahNumber, ayah.ayahNumber) },
+                                    onRemoveBookmark = { onToggleBookmark(ayah) }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -621,16 +652,33 @@ private fun SurahReaderView(
     // A strip of space above the landed ayah, so its hairline and ribbon aren't pressed under the bar
     val landingGapPx = with(LocalDensity.current) { 16.dp.roundToPx() }
 
+    // Landing at an ayah, on open or on a far jump: the page fades up and rises the last 28dp on its layer
+    val pageAlpha = remember { Animatable(1f) }
+    val pageRise = remember { Animatable(0f) }
+    val risePx = with(LocalDensity.current) { 28.dp.toPx() }
+    val landPage: suspend () -> Unit = {
+        coroutineScope {
+            launch { pageAlpha.animateTo(1f, tween(240, easing = EaseOutExpo)) }
+            launch { pageRise.animateTo(0f, tween(280, easing = EaseOutExpo)) }
+        }
+    }
+
     // Item 0 is the surah opening, so ayah n sits at index n
     LaunchedEffect(surah?.number, initialScrollAyah, ayahs.isNotEmpty()) {
         if (ayahs.isNotEmpty() && !hasScrolledToInitial) {
             if (initialScrollAyah > 1) {
                 listState.scrollToItem(initialScrollAyah.coerceAtMost(ayahs.size), -landingGapPx)
                 if (initialScrollAyah == resumeAyah) arrival++
+                // The list was held invisible until it sat at the ayah, so the surah's top never flashes first
+                pageAlpha.snapTo(0f)
+                pageRise.snapTo(risePx)
+                hasScrolledToInitial = true
+                // On the reader's scope, so a restart of this effect can't strand the page half faded
+                scope.launch { landPage() }
             } else {
                 listState.scrollToItem(0)
+                hasScrolledToInitial = true
             }
-            hasScrolledToInitial = true
         }
     }
 
@@ -657,10 +705,6 @@ private fun SurahReaderView(
         numberTick.animateTo(1f, tween(220, easing = EaseOutExpo))
     }
 
-    // Jump-to-resume transition, applied to the list's layer
-    val pageAlpha = remember { Animatable(1f) }
-    val pageRise = remember { Animatable(0f) }
-    val risePx = with(LocalDensity.current) { 28.dp.toPx() }
     var jumping by remember { mutableStateOf(false) }
 
     // Offer the way back only while the resume ayah is still ahead of (below) the reader
@@ -813,7 +857,8 @@ private fun SurahReaderView(
                 modifier = Modifier
                     .fillMaxSize()
                     .graphicsLayer {
-                        alpha = pageAlpha.value
+                        // Hidden while a resume open waits to sit at its ayah
+                        alpha = if (!hasScrolledToInitial && initialScrollAyah > 1) 0f else pageAlpha.value
                         translationY = pageRise.value
                     }
             ) {
@@ -881,10 +926,7 @@ private fun SurahReaderView(
                                     listState.scrollToItem(resumeAyah, -landingGapPx)
                                     pageRise.snapTo(risePx)
                                     arrival++
-                                    coroutineScope {
-                                        launch { pageAlpha.animateTo(1f, tween(240, easing = EaseOutExpo)) }
-                                        launch { pageRise.animateTo(0f, tween(420, easing = EaseOutExpo)) }
-                                    }
+                                    landPage()
                                 }
                             } finally {
                                 jumping = false
@@ -1143,8 +1185,8 @@ private fun AyahBlock(
             wash.animateTo(1f, tween(300, easing = EaseOutExpo))
             wash.animateTo(0f, tween(1900, easing = EaseOutExpo))
         }
-        launch { ribbon.animateTo(1f, tween(700, delayMillis = 120, easing = EaseOutExpo)) }
-        launch { label.animateTo(1f, tween(500, delayMillis = 300, easing = EaseOutExpo)) }
+        launch { ribbon.animateTo(1f, tween(400, delayMillis = 80, easing = EaseOutExpo)) }
+        launch { label.animateTo(1f, tween(300, delayMillis = 160, easing = EaseOutExpo)) }
     }
 
     // A small pop on the bookmark icon when the ayah is saved here, not when it was already saved
