@@ -29,9 +29,6 @@ colors:
   sage-muted: "#8A9991"
   error-container-dark: "#8C1D18"
   on-error-container-dark: "#F9DEDC"
-  carpet-red: "#7A1522"
-  carpet-ivory: "#F2E3C6"
-  carpet-gold: "#E0B04A"
   kaaba-black: "#141413"
   quran-night-bg: "#10110D"
   quran-night-surface: "#181914"
@@ -155,8 +152,7 @@ components:
     textColor: "{colors.stone-muted}"
     typography: "{typography.label}"
   nav-item-selected:
-    # The mihrab niche. Jadwal and Kiblat; Al-Quran and Setelan take their own palettes (see Navigation)
-    backgroundColor: "{colors.cypress-tint}"
+    # The astrolabe pointer and selected icon. Jadwal, Kiblat and Setelan; Al-Quran takes its own palette (see Navigation)
     textColor: "{colors.cypress-primary}"
 ---
 
@@ -166,7 +162,7 @@ components:
 
 **Creative North Star: "The Brass Astrolabe"**
 
-MyPrayer is an instrument for reading sacred time. The astrolabe is the governing image: brass markings on deep cypress, fine graduated ticks, and numerals set in tabular figures so a time or a bearing never shifts as it counts. Precision lives in the numerals and the brass accents. The Kiblat tab turns the astrolabe into a sundial: Tongkat Istiwa, after Rashdul Kiblat, the days the sun stands over the Ka'bah and every upright stick's shadow lies on the Qibla line. Setelan keeps a mosque-carpet palette of its own.
+MyPrayer is an instrument for reading sacred time. The astrolabe is the governing image: brass markings on deep cypress, fine graduated ticks, and numerals set in tabular figures so a time or a bearing never shifts as it counts. Precision lives in the numerals and the brass accents. The Kiblat tab turns the astrolabe into a sundial: Tongkat Istiwa, after Rashdul Kiblat, the days the sun stands over the Ka'bah and every upright stick's shadow lies on the Qibla line. Setelan turns it into a clock: the five prayers stand on the astrolabe's hour scale at their real times.
 
 Around that precision, the surfaces stay calm and devotional. Backgrounds are warm limestone, never stark white. Cards are flat with hairline outlines and softly rounded corners. Gold appears in small amounts and means something each time it does. The density is that of a single-column phone schedule: one large prayer name, six rows, and plenty of air between them. The intended feel is quiet and respectful, an app you open five times a day without it ever raising its voice.
 
@@ -218,13 +214,7 @@ The schedule screen's top is tinted by the next prayer, so the page itself says 
 - **Stop Rose** (`error-container`, `on-error-container`; dark `error-container-dark`): only the "Hentikan" (stop adzan) button. These are Material 3 baseline values and are not yet set explicitly in the theme.
 - **Kaaba Black** (`kaaba-black`): the Kaaba emblem body only.
 
-### Setelan Carpet
-Setelan has its own carpet colours, defined in `Color.kt` and used nowhere else except the navigation bar on that tab (`carpetColorScheme` in `Theme.kt`). They are the same in both schemes; dark mode darkens the carpet 45% toward black (`carpetColor`).
-- **Carpet Red** (`carpet-red`): the verdict hero.
-- **Carpet Ivory** (`carpet-ivory`): text, hairlines and the arch motif on the hero.
-- **Carpet Gold** (`carpet-gold`): the missing-permission count and icons on the hero, and the dark-mode accent.
-
-Kiblat uses the main palette and the time-of-day sky; Brass Gold marks the Ka'bah and the aligned state.
+Kiblat and Setelan use the main palette and the time-of-day sky. On Kiblat, Brass Gold marks the Ka'bah and the aligned state; on Setelan, the next prayer and missing permissions.
 
 ### Quran Malam Hangat
 The Quran tab has a night scheme of its own: a warm, low-glare page, like reading a mushaf by lamplight. It replaces Obsidian Night only on the Quran tab and its navigation bar. Tokens live in `Color.kt` (`QuranNight*`); `QuranTheme` in `Theme.kt` applies them.
@@ -297,7 +287,7 @@ A single column on phones. Jadwal fits one screen and does not scroll: it is two
 
 The Kiblat screen is not scrolled. Like Jadwal, its sky runs under the status bar. The header row sits at the 20dp gutter below the status bar, the stick stands 286dp below the status bar (raised on short screens so its shadow clears the panel), and the guidance panel sits on a fade at the bottom.
 
-Navigation is a four-item bar (Jadwal, Kiblat, Al-Quran, Setelan) with a 1dp hairline above it, no tonal elevation, and a mihrab niche marking the selected tab. There is no tablet or landscape adaptation yet. A navigation rail on expanded widths is the expected path when that is needed.
+Navigation is a four-item bar (Jadwal, Kiblat, Al-Quran, Setelan) with a 1dp hairline above it, no tonal elevation, and an astrolabe pointer marking the selected tab. There is no tablet or landscape adaptation yet. A navigation rail on expanded widths is the expected path when that is needed.
 
 ## Elevation & Depth
 
@@ -338,22 +328,29 @@ The 48dp trailing control sets the row height, giving a compact row of 52dp (60d
 - **Filled** (Gunakan Lokasi Saya): full-width cypress fill with a leading 18dp icon. Only for a setup action the schedule depends on, at most one per screen. While working, it is disabled with a 16dp spinner and progress copy ("Mencari lokasi…").
 - **Stop** (Hentikan): Stop Rose fill. The one destructive-coloured control. On Setelan it is a 48dp square icon button.
 
-Setelan's own buttons are described under Setelan Siaga below.
+Setelan's own controls are described under Setelan Rete below.
 
 ### Cards / Sections
 - **Corner Style:** 16dp (section cards on Jadwal).
 - **Background:** Paper / Pine Surface, 1dp hairline, no shadow.
 - **Internal Padding:** 16–18dp, with hairline dividers at 50–60% between items.
 
-### Setelan Siaga (signature)
-Setelan answers one question first: will the adzan be on time? It lives in a mosque-carpet world of its own: the carpet carries the verdict, ivory paper carries the controls.
-- **Palette:** the page is Carpet Paper (`#F6F1E7`; dark `#140C0D`) with Carpet Ink and Carpet Mute text (`Color.kt`). The accent is Carpet Red in light mode and Carpet Gold in dark mode (selected icons on gold use Carpet On Gold). Dividers are ink at 14%.
-- **Verdict hero:** full-width carpet (`carpetColor`, darkened in dark mode) with the prayer-arch motif in ivory at 14%, clipped to the hero. Headline 30sp/36 ExtraBold: "Adzan siap tepat waktu", or "{n} izin belum aktif" with n in gold. One line of reason in ivory 78%. Below, the two permissions (Notifikasi, Alarm tepat waktu) as 52dp rows under ivory 18% hairlines: a 20dp check in ivory 70% and "Aktif" when granted; a gold error icon, a one-line hint and an ivory pill "Aktifkan" (carpet text) when missing.
-- **Section titles:** 20sp/28 bold ink, 24dp above, marked as headings. No uppercase overlines.
-- **Audio rows:** 64dp; a 40dp tile (accent at 12%, 10dp corners) with the icon (sunrise for Subuh, note for Dzuhur–Isya), the prayers it covers in 12sp Mute, the file name in 15sp semibold on one line, an optional 48dp restore button, and a "Ganti" text button in the accent.
-- **Volume:** the same tile, a Material slider in the accent, and the percentage in 15sp bold tabular. Two-way sync with the system alarm volume is unchanged.
-- **Tests:** three outlined 48dp buttons (Reguler, Subuh, Getar) on Carpet Card with accent icons, and the 48dp Stop button.
-- **Reminder modes:** one 64dp row per prayer: name 17sp bold (Mute when off) over the mode label, and a segmented group on ink 6% (12dp corners, 3dp padding) of three 48dp icon toggles (adzan, getar, nonaktif). The selected one fills with the accent. Each toggle is a radio button labelled "Pengingat {waktu}: {mode}".
+### Setelan Rete (signature)
+Setelan is the astrolabe read as a clock. The five prayers sit on a 24-hour dial at their real times, and the dial is also the reminder control. It uses the app scheme and Jadwal's sky, like Kiblat; there is no palette of its own.
+- **Sky:** the next prayer's sky (`prayerSkyColors`) fading to the background by 300dp, under the status bar, scrolling with the page. Secondary text is Sky Stone in light mode.
+- **Header:** "Setelan" 24sp/32 bold (a heading) over "{n} dari 5 pengingat aktif" in 14sp medium Stone. Vibrate counts as active.
+- **Dial:** full width inside a 16dp gutter, square. It is drawn on a 328-unit square and scales from there (`DialUnits` in `SettingsScreen.kt`). 12:00 is at the top, midnight at the bottom, clockwise (`hourAngle`).
+  - Plate: rings every 28 units from 56 to 140 and hour lines every 15° from 35 to 146, 1dp, body colour at 25%. Outer circle, 1dp, body at 45%.
+  - Rim: a tick every quarter hour (157–163), longer every hour (152–163), body at 60%; brass 2dp marks at 00, 06, 12 and 18.
+  - Alidade: a 2dp brass rule from the hub (36) toward the next prayer (114), fading toward the hub. Hidden while Terbit is next.
+  - Hub: a 60-unit disc with a 7-unit halo of the body colour at 14%. Primary with a check when both permissions are on; Brass with the missing count (24sp bold, tabular) otherwise. Colour eases over 300ms. Silent to screen readers; the verdict below carries it.
+  - Markers: on radius 134, a 48dp touch target holding a 34dp mode disc with an 18dp icon. Adzan: primary fill, bell. Getar: `secondaryContainer`, primary vibrate icon. Mati: background fill, 1dp outline, Stone bell-off. Colours cross over 150ms. The next prayer wears a 1.5dp brass ring 2dp clear of its disc. A tap cycles adzan, getar, mati (`ReminderMode.next`); the label reads "Pengingat {waktu} {jam}: {mode}".
+  - Labels: on radius 88, centred, the name in 12sp semibold (Stone when off) over the time in 11sp tabular (bold Brass for the next prayer).
+  - Caption under the dial: "Ketuk waktu untuk berganti: adzan, getar, mati." 12sp Stone, centred.
+- **Verdict:** 24dp below, "Adzan siap tepat waktu" or "{n} izin belum aktif" in 16sp/24 semibold (a heading), one line of reason in 13sp Stone. Then the two permissions as 52dp rows under outline-70% hairlines: Stone check and "Aktif" when granted; a Brass error icon, a 12sp hint and a primary pill "Aktifkan" when missing.
+- **Suara:** a 16sp/24 semibold heading 32dp above. "Volume alarm adzan" in Label Stone with the percentage as a 26sp bold tabular readout. The volume is a graduated rule (a tick every 5%, a long one every 25%), a 2dp primary level and a 3dp × 28dp brass index; an invisible Material slider on top takes the input and the accessibility. Two-way sync with the system alarm volume is unchanged.
+- **Tests:** four 72dp keys spaced across the row: a 48dp round button (Paper with a 1dp outline and a primary icon; Stop Rose for Hentikan) over a 12sp Stone label.
+- **Audio rows:** 56dp under outline-70% hairlines: the prayers it covers in Label Stone over the file name in 14sp semibold on one line, an optional 48dp restore button and a primary "Ganti".
 
 ### Location Link
 Borderless: a 15dp cypress pin, the location name in Label on one line with an ellipsis, and a 15dp Stone refresh icon that becomes a 12dp spinner while updating. The whole row is a 48dp touch target. It shares a `FlowRow` with the date (Hijri overline in gold, then the date in 14sp medium Stone), so it wraps onto its own line when the two don't fit, for example with a long place name or large text.
@@ -378,13 +375,13 @@ A newer message replaces the one on screen. Messages without an action get a dis
 
 ### Navigation
 A custom bar (`AppNavigationBar` in `MainActivity.kt`), 68dp plus the system navigation inset, with a 1dp hairline above and no tonal elevation. Jadwal (clock), Kiblat (compass), Al-Quran (book), Setelan (gear). Labels in Label type under the icons, always shown.
-- **Mihrab niche (signature).** The selected tab stands in a pointed prayer arch, 54dp wide in a 58dp box, that rises 13dp above the hairline (`mihrabPath`). It is filled with the indicator colour, edged in the accent at 40% with an inner arch at 18%, and fades into the bar from 62% of its height down. It glides to the new tab over 250ms with emphasized easing, landing just before the 300ms page slide, and the selected icon lifts 8dp into it on the same timing. Drawn in the draw phase only. It echoes the prayer-arch motif on Setelan's hero.
-- **Palette follows the page.** Jadwal and Kiblat use the app scheme: Paper surface, primary icon and label, `secondaryContainer` niche (Cypress Mist / Jade Mist), Stone or Sage when unselected. Al-Quran uses `quranColorScheme`; Setelan uses `carpetColorScheme` (Carpet Paper surface, carpet red by day and carpet gold at night, the accent at 14% as indicator, ink at 14% hairline). Colours move with the incoming page (90ms delay, 210ms).
+- **Astrolabe scale (signature).** The top of the bar is a graduated scale, like the rim of an astrolabe: a 1dp × 4dp tick every 9dp in the unselected colour at 30%, and a 1dp × 7dp tick at the centre of each destination at 55%. A pointer in the accent, a 36dp × 2dp bar on the hairline with a 10dp × 6dp arrowhead below it, marks the selected tab and travels the scale over 300ms with emphasized easing, in step with the page slide. Drawn in the draw phase only. It reads the astrolabe plate on Jadwal down into the bar.
+- **Palette follows the page.** Jadwal, Kiblat and Setelan use the app scheme: Paper surface, primary pointer, icon and label, Stone or Sage when unselected and for the scale. Al-Quran uses `quranColorScheme`. Colours move with the incoming page (90ms delay, 210ms).
 - **Icons:** outlined when unselected, filled when selected (150ms crossfade). Labels keep one weight in both states, so they never change width.
 - **Tap feedback:** every tap, reselects included, settles the icon from 90% scale with a slight overshoot (spring, damping 0.8). Kiblat's needle swings 45° onto its line and Setelan's gear turns a quarter as they settle. There is no ripple; the settle is the answer.
 - **Hidden in the reader.** While a surah is open the bar slides away (300ms in, 200ms out, both emphasized) and the reader is full screen; its back button returns to the list. The reader pads only for the system navigation bar, so the bar slides over it and the content never jumps.
 - **Missing-permission dot:** grows from 90% and fades over 150ms.
-- **Reselect:** Setelan scrolls back to the verdict.
+- **Reselect:** Setelan scrolls back to the dial.
 - **Screen reader:** each item is a tab in a selectable group, labelled with its name.
 - **Back:** from Kiblat, Al-Quran or Setelan returns to Jadwal (the Quran reader closes its surah first). Back on Jadwal leaves the app.
 - **Missing permission:** a 6dp badge in `secondary` (Brass / Amber) on Setelan while notifications or exact alarms are off; the item reads "Setelan, {n} izin belum aktif". Hidden on first run, while the location card is the call to action. Re-checked on every resume.
@@ -439,7 +436,7 @@ The phone is an upright stick (tongkat istiwa) on Home's astrolabe plate. On Ras
 - **Don't** enable Dynamic Color.
 - **Don't** add drop shadows beyond the next-prayer row's 2dp lift (The Flat Sanctuary Rule).
 - **Don't** fill large areas with gold, or use gold for anything other than moments, alignment, and the missing-permission warning.
-- **Don't** hard-code hex values in screens. Colours live in `Color.kt`, including the Setelan carpet tokens.
+- **Don't** hard-code hex values in screens. Colours live in `Color.kt`.
 - **Don't** reintroduce unused palettes in `Color.kt`. It holds only the tokens the two schemes use.
 - **Don't** hard-code a time-zone label or compass direction. Derive WIB/WITA/WIT from the device offset, and the direction from the bearing.
 - **Don't** stack uppercase overlines or use control-panel wording where a gentle label will do (The Overline Budget Rule).

@@ -10,7 +10,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.compositeOver
 
 // Every role a component reads is set here; unset roles fall back to Material's baseline purple.
 private val DarkColorScheme = darkColorScheme(
@@ -109,25 +108,6 @@ private val QuranDayColorScheme = LightColorScheme.copy(tertiary = CypressPrimar
  * `tertiary` is the ayah-end medallion and surah-name colour: cypress by day, amber at night.
  */
 fun quranColorScheme(night: Boolean): ColorScheme = if (night) QuranNightColorScheme else QuranDayColorScheme
-
-/**
- * Setelan's carpet palette, for the navigation bar on that tab (the screen itself reads the carpet tokens).
- * The accent is carpet red by day and carpet gold at night; the indicator is the accent at 14% on carpet paper.
- */
-fun carpetColorScheme(dark: Boolean): ColorScheme {
-    val paper = if (dark) CarpetPaperDark else CarpetPaper
-    val ink = if (dark) CarpetInkDark else CarpetInk
-    val accent = if (dark) CarpetGold else CarpetRed
-    return (if (dark) DarkColorScheme else LightColorScheme).copy(
-        primary = accent,
-        secondaryContainer = accent.copy(alpha = 0.14f).compositeOver(paper),
-        onSecondaryContainer = accent,
-        surface = paper,
-        onSurface = ink,
-        onSurfaceVariant = if (dark) CarpetMuteDark else CarpetMute,
-        outline = ink.copy(alpha = 0.14f).compositeOver(paper)
-    )
-}
 
 /** Reader colours that have no Material role. Set by [QuranTheme]; screens read them, never branch on the scheme. */
 @Immutable

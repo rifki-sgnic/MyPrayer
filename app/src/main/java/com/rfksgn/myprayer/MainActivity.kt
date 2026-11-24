@@ -54,7 +54,6 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -63,7 +62,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -72,9 +70,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -104,7 +103,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.rfksgn.myprayer.core.permission.rememberAdzanReadiness
-import com.rfksgn.myprayer.ui.theme.carpetColorScheme
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -298,12 +296,8 @@ class MainActivity : ComponentActivity() {
                         ) {
                         AppNavigationBar(
                             selectedTab = selectedTab,
-                            // The bar takes the page's palette: Quran's on Al-Quran, the carpet on Setelan
-                            scheme = when (selectedTab) {
-                                2 -> quranColorScheme(quranNight)
-                                3 -> carpetColorScheme(appDark)
-                                else -> appScheme
-                            },
+                            // The bar takes the page's palette: Quran's on Al-Quran, the app's everywhere else
+                            scheme = if (selectedTab == 2) quranColorScheme(quranNight) else appScheme,
                             missingPermissions = missingPermissions,
                             onSelect = { tab ->
                                 if (tab != selectedTab) {
@@ -409,6 +403,7 @@ class MainActivity : ComponentActivity() {
                         ) } }
 
                         3 -> SettingsScreen(
+                            schedule = uiState.schedule,
                             reminderModes = uiState.reminderModes,
                             customAudio = uiState.customAudio,
                             onVolumeChange = { newVol -> viewModel.setAdzanVolume(newVol) },
@@ -423,7 +418,8 @@ class MainActivity : ComponentActivity() {
                                 viewModel.testPlayAdzan(mode, isFajr)
                             },
                             onStopAdzan = { viewModel.stopAdzan() },
-                            modifier = Modifier.padding(innerPadding),
+                            // Setelan draws its sky under the status bar and pads the top itself
+                            modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding()),
                             scrollState = settingsScroll
                         )
                     }
@@ -462,14 +458,12 @@ private fun AppNavigationBar(
     val surface by animateColorAsState(scheme.surface, spec, label = "navSurface")
     val line by animateColorAsState(scheme.outline, spec, label = "navLine")
     val accent by animateColorAsState(scheme.primary, spec, label = "navAccent")
-    val indicator by animateColorAsState(scheme.secondaryContainer, spec, label = "navIndicator")
     val muted by animateColorAsState(scheme.onSurfaceVariant, spec, label = "navMuted")
     val badge by animateColorAsState(scheme.secondary, spec, label = "navBadge")
     // One pulse per tap, reselects included, so every tap is answered
     val pulses = remember { mutableStateListOf(0, 0, 0, 0) }
-    // The niche glides to the selected tab; read only in the draw phase
-    // 250ms, so the niche (the tap's answer) lands just before the 300ms page slide
-    val nichePos by animateFloatAsState(selectedTab.toFloat(), tween(250, easing = EmphasizedEasing), label = "navNiche")
+    // The pointer travels the scale with the 300ms page slide; read only in the draw phase
+    val pointerPos by animateFloatAsState(selectedTab.toFloat(), tween(300, easing = EmphasizedEasing), label = "navPointer")
 
     Column {
         HorizontalDivider(thickness = 1.dp, color = line)
@@ -482,24 +476,21 @@ private fun AppNavigationBar(
                 .height(68.dp)
                 .drawWithCache {
                     val u = 1.dp.toPx()
-                    val niche = mihrabPath(u, close = true)
-                    val edge = mihrabPath(u, close = false)
-                    val inner = Path().apply {
-                        moveTo(7 * u, 58 * u); lineTo(7 * u, 29 * u)
-                        cubicTo(7 * u, 19 * u, 18 * u, 12 * u, 29 * u, 7.5f * u)
-                        cubicTo(40 * u, 12 * u, 51 * u, 19 * u, 51 * u, 29 * u)
-                        lineTo(51 * u, 58 * u)
-                    }
-                    val hairline = Stroke(width = u)
-                    // The niche fades into the bar from 62% of its height down
-                    fun fade(c: Color) = Brush.verticalGradient(0.62f to c, 0.96f to c.copy(alpha = 0f), endY = 58 * u)
+                    val slot = size.width / navTabs.size
+                    val pointer = Path().apply { moveTo(-5 * u, 0f); lineTo(5 * u, 0f); lineTo(0f, 6 * u); close() }
                     onDrawBehind {
-                        // Rises 13dp above the bar's hairline, centred on the selected item
-                        translate(left = (nichePos + 0.5f) * size.width / navTabs.size - 29 * u, top = -13 * u) {
-                            drawPath(niche, fade(indicator))
-                            drawPath(edge, fade(accent.copy(alpha = 0.4f)), style = hairline)
-                            drawPath(inner, fade(accent.copy(alpha = 0.18f)), style = hairline)
+                        // The astrolabe scale: a fine tick every 9dp, a longer one under each destination
+                        val fine = muted.copy(alpha = 0.3f)
+                        var x = 4 * u
+                        while (x < size.width) {
+                            drawRect(fine, Offset(x, 0f), Size(u, 4 * u)); x += 9 * u
                         }
+                        val major = muted.copy(alpha = 0.55f)
+                        repeat(navTabs.size) { drawRect(major, Offset((it + 0.5f) * slot, 0f), Size(u, 7 * u)) }
+                        // The pointer: a 36dp bar on the hairline with a small arrowhead under the selected tab
+                        val cx = (pointerPos + 0.5f) * slot
+                        drawRoundRect(accent, Offset(cx - 18 * u, -u), Size(36 * u, 2 * u), CornerRadius(u))
+                        translate(left = cx) { drawPath(pointer, accent) }
                     }
                 }
                 .selectableGroup()
@@ -508,13 +499,11 @@ private fun AppNavigationBar(
                 val selected = selectedTab == index
                 val flagged = index == 3 && missingPermissions > 0
                 val color by animateColorAsState(if (selected) accent else muted, tween(200), label = "navItem")
-                // The selected icon stands up into the niche
-                val lift by animateDpAsState(if (selected) (-8).dp else 0.dp, tween(250, easing = EmphasizedEasing), label = "navLift")
                 Column(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        // The icon's settle answers each tap, so no ripple fights the niche
+                        // The icon's settle and the pointer answer each tap, so no ripple
                         .selectable(
                             selected = selected,
                             onClick = {
@@ -543,8 +532,7 @@ private fun AppNavigationBar(
                                 ) {
                                     Badge(containerColor = badge)
                                 }
-                            },
-                            modifier = Modifier.offset { IntOffset(0, lift.roundToPx()) }
+                            }
                         ) {
                             NavIcon(tab, selected, pulses[index])
                         }
@@ -554,15 +542,6 @@ private fun AppNavigationBar(
             }
         }
     }
-}
-
-/** The mihrab niche: a pointed arch 54dp wide in a 58dp box, open at the bottom when only its edge is drawn. */
-private fun mihrabPath(u: Float, close: Boolean) = Path().apply {
-    moveTo(2 * u, 58 * u); lineTo(2 * u, 27 * u)
-    cubicTo(2 * u, 15 * u, 15 * u, 6.5f * u, 29 * u, 1 * u)
-    cubicTo(43 * u, 6.5f * u, 56 * u, 15 * u, 56 * u, 27 * u)
-    lineTo(56 * u, 58 * u)
-    if (close) close()
 }
 
 @Composable

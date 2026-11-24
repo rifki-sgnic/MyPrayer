@@ -41,19 +41,5 @@ val QuranNightAmber = Color(0xFFD9B45A)       // Penanda akhir ayat & pita
 val QuranNightMist = Color(0xFF3A3729)        // Pilihan terpilih: cukup terang agar terlihat di atas permukaan
 val QuranNightContainer = Color(0xFF1E2A23)
 
-// Kiblat — Shaf: karpet masjid dengan garis shaf. Hanya dipakai layar Kiblat.
-val CarpetRed = Color(0xFF7A1522)            // Karpet merah masjid
-val CarpetIvory = Color(0xFFF2E3C6)          // Garis shaf & teks di atas karpet
-val CarpetGold = Color(0xFFE0B04A)           // Shaf lurus (terkunci) & penanda Ka'bah
+// Kiblat
 val KaabaBlack = Color(0xFF141413)           // Badan emblem Ka'bah
-
-// Setelan — Siaga: lembar gading di bawah karpet. Hanya dipakai layar Setelan.
-val CarpetPaper = Color(0xFFF6F1E7)          // Latar gading
-val CarpetCard = Color(0xFFFFFDF8)           // Tombol tes
-val CarpetInk = Color(0xFF241417)            // Teks utama
-val CarpetMute = Color(0xFF6E5B57)           // Teks sekunder
-val CarpetPaperDark = Color(0xFF140C0D)
-val CarpetCardDark = Color(0xFF1D1213)
-val CarpetInkDark = Color(0xFFF4E9E2)
-val CarpetMuteDark = Color(0xFFB39C97)
-val CarpetOnGold = Color(0xFF2A1418)         // Ikon terpilih di atas emas (dark)
