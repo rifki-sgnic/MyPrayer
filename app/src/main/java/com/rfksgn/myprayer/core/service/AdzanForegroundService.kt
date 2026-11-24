@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import androidx.core.net.toUri
+import com.rfksgn.myprayer.core.alarm.AdzanAlarmScheduler
 import kotlin.time.Duration.Companion.milliseconds
 
 class AdzanForegroundService : Service() {
@@ -48,6 +49,7 @@ class AdzanForegroundService : Service() {
         const val EXTRA_PRAYER_NAME = "EXTRA_PRAYER_NAME"
         const val EXTRA_REMINDER_MODE = "EXTRA_REMINDER_MODE"
         const val EXTRA_IS_TEST = "EXTRA_IS_TEST"
+        const val EXTRA_MINUTES_BEFORE = "EXTRA_MINUTES_BEFORE"
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -57,10 +59,13 @@ class AdzanForegroundService : Service() {
             ACTION_STOP_ADZAN -> {
                 stopAdzanAndService()
             }
+
             ACTION_START_ADZAN -> {
                 val prayerName = intent.getStringExtra(EXTRA_PRAYER_NAME) ?: "Sholat"
                 val isTest = intent.getBooleanExtra(EXTRA_IS_TEST, false)
-                val fallbackModeStr = intent.getStringExtra(EXTRA_REMINDER_MODE) ?: ReminderMode.ADZAN.name
+                val minutesBefore = intent.getIntExtra(EXTRA_MINUTES_BEFORE, 45)
+                val fallbackModeStr =
+                    intent.getStringExtra(EXTRA_REMINDER_MODE) ?: ReminderMode.ADZAN.name
 
                 startForegroundWithNotification(prayerName, ReminderMode.ADZAN)
                 acquireWakeLock()
@@ -69,8 +74,23 @@ class AdzanForegroundService : Service() {
                 serviceJob = CoroutineScope(Dispatchers.Main).launch {
                     val prefs = LocationPreferences(applicationContext)
 
+                    if (prayerName == AdzanAlarmScheduler.FRIDAY_PREP_PRAYER_KEY) {
+                        startForegroundWithNotification(
+                            prayerName,
+                            ReminderMode.VIBRATE,
+                            minutesBefore
+                        )
+                        val notifUri =
+                            RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                        tryStartMediaPlayer(notifUri)
+                        startVibrationOnlyMode()
+                        return@launch
+                    }
+
                     val actualMode = if (isTest) {
-                        runCatching { ReminderMode.valueOf(fallbackModeStr) }.getOrDefault(ReminderMode.ADZAN)
+                        runCatching { ReminderMode.valueOf(fallbackModeStr) }.getOrDefault(
+                            ReminderMode.ADZAN
+                        )
                     } else {
                         val savedModes = prefs.reminderModesFlow.first()
                         savedModes[prayerName] ?: ReminderMode.ADZAN
@@ -82,9 +102,11 @@ class AdzanForegroundService : Service() {
                         ReminderMode.SILENT -> {
                             stopAdzanAndService()
                         }
+
                         ReminderMode.VIBRATE -> {
                             startVibrationOnlyMode()
                         }
+
                         ReminderMode.ADZAN -> {
                             val customAudio = prefs.customAudioFlow.first()
                             val savedVolume = prefs.adzanVolumeFlow.first()
@@ -128,7 +150,11 @@ class AdzanForegroundService : Service() {
         }
     }
 
-    private fun startForegroundWithNotification(prayerName: String, mode: ReminderMode) {
+    private fun startForegroundWithNotification(
+        prayerName: String,
+        mode: ReminderMode,
+        minutesBefore: Int = 45
+    ) {
         createNotificationChannel()
 
         val openAppIntent = Intent(this, MainActivity::class.java).apply {
@@ -147,15 +173,23 @@ class AdzanForegroundService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val subtitle = if (mode == ReminderMode.VIBRATE) {
-            "Mode Getar Aktif • Geser hapus notifikasi atau ketuk tombol untuk berhenti."
+        val isFridayPrep = prayerName == com.rfksgn.myprayer.core.alarm.AdzanAlarmScheduler.FRIDAY_PREP_PRAYER_KEY
+
+        val title = if (isFridayPrep) {
+            "Persiapan Sholat Jumat ($minutesBefore Menit Lagi)"
         } else {
-            "Geser hapus notifikasi ini atau ketuk tombol di bawah untuk menghentikan adzan."
+            "Waktu $prayerName Telah Tiba"
+        }
+
+        val subtitle = when {
+            isFridayPrep -> "Sunnah mandi Jumat, memakai wewangian, dan berangkat lebih awal ke masjid."
+            mode == ReminderMode.VIBRATE -> "Mode Getar Aktif • Geser hapus notifikasi atau ketuk tombol untuk berhenti."
+            else -> "Geser hapus notifikasi ini atau ketuk tombol di bawah untuk menghentikan adzan."
         }
 
         val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-            .setContentTitle("Waktu $prayerName Telah Tiba")
+            .setContentTitle(title)
             .setContentText(subtitle)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)

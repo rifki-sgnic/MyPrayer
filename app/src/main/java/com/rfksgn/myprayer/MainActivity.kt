@@ -259,6 +259,10 @@ class MainActivity : ComponentActivity() {
                             },
                             onToggleAlarm = { prayerName -> viewModel.cycleReminderMode(prayerName) },
                             onOpenSettings = { selectedTab = 3 },
+                            onOpenAlKahf = {
+                                selectedTab = 2
+                                quranViewModel.openSurah(18, 1) // Langsung buka Surah Al-Kahfi (No. 18)
+                            },
                             // Home draws its sky under the status bar and pads the top itself
                             modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
                         )
@@ -306,6 +310,7 @@ class MainActivity : ComponentActivity() {
                         3 -> SettingsScreen(
                             reminderModes = uiState.reminderModes,
                             customAudio = uiState.customAudio,
+                            fridayConfig = uiState.fridayConfig,
                             onVolumeChange = { newVol -> viewModel.setAdzanVolume(newVol) },
                             onModeChange = { name, mode -> viewModel.setReminderMode(name, mode) },
                             onRegularAudioSelected = { uri, fileName ->
@@ -314,6 +319,10 @@ class MainActivity : ComponentActivity() {
                             onFajrAudioSelected = { uri, fileName ->
                                 viewModel.updateCustomFajrAudio(uri, fileName)
                             },
+                            onFridayConfigChange = { enabled, mins ->
+                                viewModel.setFridayReminder(enabled, mins)
+                            },
+                            onTestFridayReminder = { viewModel.testFridayReminder() },
                             onTestAdzan = { mode, isFajr ->
                                 viewModel.testPlayAdzan(mode, isFajr)
                             },

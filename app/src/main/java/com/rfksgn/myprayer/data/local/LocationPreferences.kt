@@ -1,9 +1,11 @@
 package com.rfksgn.myprayer.data.local
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.rfksgn.myprayer.domain.model.ReminderMode
@@ -27,6 +29,11 @@ data class CustomAdzanAudio(
     val fajrFileName: String = "Default Subuh (Bawaan Aplikasi)"
 )
 
+data class FridayReminderConfig(
+    val enabled: Boolean = true,
+    val minutesBefore: Int = 45 // Pilihan: 30, 45, atau 60 menit sebelum Dzuhur
+)
+
 class LocationPreferences(private val context: Context) {
 
     companion object {
@@ -44,6 +51,9 @@ class LocationPreferences(private val context: Context) {
 
         private val ADZAN_VOLUME_KEY = floatPreferencesKey("adzan_volume")
         fun modeKeyFor(prayerName: String) = stringPreferencesKey("reminder_mode_$prayerName")
+
+        private val FRIDAY_REMINDER_ENABLED_KEY = booleanPreferencesKey("friday_reminder_enabled")
+        private val FRIDAY_REMINDER_MINUTES_KEY = intPreferencesKey("friday_reminder_minutes")
     }
 
     // Default ke Jakarta jika belum pernah ambil GPS
@@ -77,6 +87,13 @@ class LocationPreferences(private val context: Context) {
     // Flow Volume Adzan (0.0f sampai 1.0f, default 0.7f / 70%)
     val adzanVolumeFlow: Flow<Float> = context.dataStore.data.map { prefs ->
         prefs[ADZAN_VOLUME_KEY] ?: 0.7f
+    }
+
+    val fridayReminderFlow: Flow<FridayReminderConfig> = context.dataStore.data.map { prefs ->
+        FridayReminderConfig(
+            enabled = prefs[FRIDAY_REMINDER_ENABLED_KEY] ?: true,
+            minutesBefore = prefs[FRIDAY_REMINDER_MINUTES_KEY] ?: 45
+        )
     }
 
     suspend fun saveLocation(lat: Double, lng: Double, city: String) {
@@ -120,6 +137,13 @@ class LocationPreferences(private val context: Context) {
     suspend fun setAdzanVolume(volume: Float) {
         context.dataStore.edit { prefs ->
             prefs[ADZAN_VOLUME_KEY] = volume.coerceIn(0f, 1f)
+        }
+    }
+
+    suspend fun setFridayReminder(enabled: Boolean, minutesBefore: Int) {
+        context.dataStore.edit { prefs ->
+            prefs[FRIDAY_REMINDER_ENABLED_KEY] = enabled
+            prefs[FRIDAY_REMINDER_MINUTES_KEY] = minutesBefore
         }
     }
 }

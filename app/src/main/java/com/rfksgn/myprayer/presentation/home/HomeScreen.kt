@@ -24,6 +24,8 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
@@ -66,6 +68,9 @@ import com.rfksgn.myprayer.core.permission.rememberAdzanReadiness
 import com.rfksgn.myprayer.domain.model.ReminderMode
 import com.rfksgn.myprayer.ui.theme.SkyStone
 import com.rfksgn.myprayer.ui.theme.prayerSky
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -79,6 +84,7 @@ fun HomeScreen(
     onRefreshLocationClick: () -> Unit,
     onToggleAlarm: (String) -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenAlKahf: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val schedule = uiState.schedule
@@ -94,15 +100,23 @@ fun HomeScreen(
         return
     }
 
+    val isFriday = remember(schedule.dateFormatted) {
+        LocalDate.now().dayOfWeek == DayOfWeek.FRIDAY
+    }
+
+    val showAlKahfBanner = remember(schedule.maghrib, uiState.countdownText) {
+        isAlKahfSunnahWindow(schedule.maghrib)
+    }
+
     val readiness = rememberAdzanReadiness()
     val hijriDateString = remember(schedule.dateFormatted) { getFormattedHijriDate() }
     val currentTime = remember(uiState.countdownText) { LocalTime.now() }
 
-    val prayers = remember(schedule) {
+    val prayers = remember(schedule, isFriday) {
         listOf(
             PrayerRowData("Subuh", schedule.fajr, isSunnah = false),
             PrayerRowData("Terbit", schedule.sunrise, isSunnah = true),
-            PrayerRowData("Dzuhur", schedule.dhuhr, isSunnah = false),
+            PrayerRowData(if (isFriday) "Jumat" else "Dzuhur", schedule.dhuhr, isSunnah = false, keyName = "Dzuhur"),
             PrayerRowData("Ashar", schedule.asr, isSunnah = false),
             PrayerRowData("Maghrib", schedule.maghrib, isSunnah = false),
             PrayerRowData("Isya", schedule.isha, isSunnah = false)
@@ -190,6 +204,11 @@ fun HomeScreen(
                 onFixReadiness = onOpenSettings
             )
           }
+
+            // Banner Sunnah Jumat: Muncul otomatis Kamis ba'da Maghrib s/d Jumat sebelum Maghrib
+            if (showAlKahfBanner) {
+                AlKahfSunnahCard(onClick = onOpenAlKahf)
+            }
 
             // 3. SCHEDULE
             Column(
@@ -658,7 +677,8 @@ private fun PrayerTimelineItem(
 private data class PrayerRowData(
     val name: String,
     val time: String,
-    val isSunnah: Boolean
+    val isSunnah: Boolean,
+    val keyName: String = name
 )
 
 private fun isPrayerPassed(timeStr: String, now: LocalTime, isNext: Boolean): Boolean {
@@ -713,5 +733,80 @@ private fun getFormattedHijriDate(): String {
         "$day ${monthNames.getOrElse(month - 1) { "" }} $year H"
     } catch (e: Exception) {
         "Kalender Hijriah"
+    }
+}
+
+@Composable
+private fun AlKahfSunnahCard(onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.secondaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Sunnah Hari Jumat",
+                    style = TextStyle(
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.8.sp,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                )
+                Text(
+                    text = "Baca Surah Al-Kahfi (QS. 18)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = "Buka Surah Al-Kahfi",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+    }
+}
+
+private fun isAlKahfSunnahWindow(maghribTimeStr: String): Boolean {
+    return try {
+        val now = LocalDateTime.now()
+        val parts = maghribTimeStr.split(":")
+        val maghribToday = LocalTime.of(parts[0].toInt(), parts[1].toInt())
+
+        when (now.dayOfWeek) {
+            DayOfWeek.THURSDAY -> !now.toLocalTime().isBefore(maghribToday) // Kamis >= Maghrib
+            DayOfWeek.FRIDAY -> now.toLocalTime().isBefore(maghribToday)    // Jumat < Maghrib
+            else -> false
+        }
+    } catch (e: Exception) {
+        false
     }
 }

@@ -56,6 +56,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -97,6 +99,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.rfksgn.myprayer.core.permission.checkExactAlarmPermission
 import com.rfksgn.myprayer.core.permission.checkNotificationPermission
 import com.rfksgn.myprayer.data.local.CustomAdzanAudio
+import com.rfksgn.myprayer.data.local.FridayReminderConfig
 import com.rfksgn.myprayer.domain.model.ReminderMode
 import com.rfksgn.myprayer.ui.theme.CarpetCard
 import com.rfksgn.myprayer.ui.theme.CarpetCardDark
@@ -124,6 +127,9 @@ fun SettingsScreen(
     onFajrAudioSelected: (String?, String) -> Unit,
     onTestAdzan: (ReminderMode, Boolean) -> Unit,
     onStopAdzan: () -> Unit,
+    fridayConfig: FridayReminderConfig,
+    onFridayConfigChange: (Boolean, Int) -> Unit,
+    onTestFridayReminder: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -351,6 +357,133 @@ fun SettingsScreen(
             }
         }
         Spacer(Modifier.height(24.dp))
+
+        // 4. PERSIAPAN SHOLAT JUMAT
+        SiagaSection(title = "Persiapan sholat Jumat", c = c) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 64.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                    Text(
+                        text = "Pengingat sebelum Jumat",
+                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp, lineHeight = 22.sp),
+                        fontWeight = FontWeight.Bold,
+                        color = c.ink
+                    )
+                    Text(
+                        text = "Notifikasi & getar lembut tiap hari Jumat sebelum Dzuhur",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = c.mute
+                    )
+                }
+                Switch(
+                    checked = fridayConfig.enabled,
+                    onCheckedChange = { isChecked ->
+                        onFridayConfigChange(isChecked, fridayConfig.minutesBefore)
+                    },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = c.onAccent,
+                        checkedTrackColor = c.accent,
+                        uncheckedThumbColor = c.mute,
+                        uncheckedTrackColor = c.ink.copy(alpha = 0.08f),
+                        uncheckedBorderColor = c.line
+                    )
+                )
+            }
+
+            if (fridayConfig.enabled) {
+                HorizontalDivider(color = c.line)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 64.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Waktu pengingat",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = c.ink
+                    )
+
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(c.ink.copy(alpha = 0.06f))
+                            .padding(3.dp)
+                            .selectableGroup(),
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        listOf(30, 45, 60).forEach { mins ->
+                            val isSelected = fridayConfig.minutesBefore == mins
+                            val fill by animateColorAsState(
+                                if (isSelected) c.accent else Color.Transparent,
+                                label = "friday_min_fill"
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .height(40.dp)
+                                    .clip(RoundedCornerShape(9.dp))
+                                    .background(fill)
+                                    .selectable(
+                                        selected = isSelected,
+                                        role = Role.RadioButton,
+                                        onClick = { onFridayConfigChange(true, mins) }
+                                    )
+                                    .padding(horizontal = 12.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "$mins mnt",
+                                    style = TextStyle(
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFeatureSettings = "tnum"
+                                    ),
+                                    color = if (isSelected) c.onAccent else c.mute
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp, bottom = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    TestButton(
+                        label = "Tes Notifikasi Jumat",
+                        description = "Tes pengingat persiapan sholat Jumat",
+                        icon = Icons.Default.Vibration,
+                        c = c,
+                        onClick = onTestFridayReminder
+                    )
+                    Button(
+                        onClick = onStopAdzan,
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        ),
+                        contentPadding = PaddingValues(0.dp),
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Stop,
+                            contentDescription = "Tutup notifikasi tes",
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 

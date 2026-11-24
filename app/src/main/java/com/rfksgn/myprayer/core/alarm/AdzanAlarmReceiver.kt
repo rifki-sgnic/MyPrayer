@@ -16,6 +16,7 @@ class AdzanAlarmReceiver : BroadcastReceiver() {
 
     companion object {
         const val EXTRA_PRAYER_NAME = "EXTRA_PRAYER_NAME"
+        const val EXTRA_MINUTES_BEFORE = "EXTRA_MINUTES_BEFORE"
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -29,9 +30,12 @@ class AdzanAlarmReceiver : BroadcastReceiver() {
 
         // 2. Jika alarm waktu sholat berbunyi, nyalakan ForegroundService Adzan
         val prayerName = intent.getStringExtra(EXTRA_PRAYER_NAME) ?: "Sholat"
+        val minutesBefore = intent.getIntExtra(EXTRA_MINUTES_BEFORE, 0)
+
         val serviceIntent = Intent(context, AdzanForegroundService::class.java).apply {
             this.action = AdzanForegroundService.ACTION_START_ADZAN
             putExtra(AdzanForegroundService.EXTRA_PRAYER_NAME, prayerName)
+            putExtra(AdzanForegroundService.EXTRA_MINUTES_BEFORE, minutesBefore)
         }
         ContextCompat.startForegroundService(context, serviceIntent)
 
@@ -46,9 +50,16 @@ class AdzanAlarmReceiver : BroadcastReceiver() {
                 val prefs = LocationPreferences(context)
                 val savedLoc = prefs.locationFlow.first()
                 val modesMap = prefs.reminderModesFlow.first()
+                val fridayConfig = prefs.fridayReminderFlow.first()
                 val schedule = GetPrayerScheduleUseCase()(savedLoc.latitude, savedLoc.longitude)
 
-                AdzanAlarmScheduler(context).scheduleDailyAlarms(schedule, modesMap)
+                AdzanAlarmScheduler(context).scheduleDailyAlarms(
+                    schedule = schedule,
+                    modesMap = modesMap,
+                    latitude = savedLoc.latitude,
+                    longitude = savedLoc.longitude,
+                    fridayConfig = fridayConfig
+                )
             } finally {
                 pendingResult.finish()
             }
