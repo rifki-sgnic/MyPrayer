@@ -51,7 +51,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.selection.toggleable
@@ -408,12 +408,6 @@ private fun SurahReaderView(
 
     // The ayah the bar reports, which is also the one the auto-save stores
     val readingAyah by remember { derivedStateOf { listState.readingItem()?.index ?: 1 } }
-    // The number ticks up on the layer only, so a fast fling costs no extra compositions
-    val numberTick = remember { Animatable(1f) }
-    LaunchedEffect(readingAyah) {
-        numberTick.snapTo(0f)
-        numberTick.animateTo(1f, tween(220, easing = EaseOutExpo))
-    }
 
     var jumping by remember { mutableStateOf(false) }
 
@@ -440,6 +434,8 @@ private fun SurahReaderView(
         animationSpec = tween(durationMillis = 280, easing = EaseOutExpo),
         label = "readerBarCondense"
     )
+    // Composition only asks whether the title shows; the fade itself is read on the layer
+    val condensedShown by remember { derivedStateOf { condensedFraction > 0f } }
 
     val hairline = MaterialTheme.colorScheme.outline
     val progressColor = MaterialTheme.colorScheme.primary
@@ -476,7 +472,7 @@ private fun SurahReaderView(
                 )
             }
 
-            if (condensedFraction > 0f) {
+            if (condensedShown) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
@@ -503,11 +499,7 @@ private fun SurahReaderView(
                             Text(
                                 text = "$readingAyah",
                                 style = metaStyle,
-                                color = metaColor,
-                                modifier = Modifier.graphicsLayer {
-                                    alpha = 0.3f + 0.7f * numberTick.value
-                                    translationY = (1f - numberTick.value) * 5.dp.toPx()
-                                }
+                                color = metaColor
                             )
                             Text(text = " dari ${surah.versesCount}", style = metaStyle, color = metaColor)
                         }
@@ -612,7 +604,7 @@ private fun SurahReaderView(
             androidx.compose.animation.AnimatedVisibility(
                 // Steps aside while an ayah is open, so it never covers that ayah's save button
                 visible = resumeAhead && openAyahId == null,
-                enter = slideInVertically(tween(320, easing = EaseOutExpo)) { it / 2 } + fadeIn(tween(240)),
+                enter = slideInVertically(tween(250, easing = EaseOutExpo)) { it / 2 } + fadeIn(tween(200)),
                 exit = slideOutVertically(tween(180)) { it / 2 } + fadeOut(tween(180)),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -904,10 +896,10 @@ private fun AyahBlock(
     var wasBookmarked by remember { mutableStateOf(ayah.isBookmarked) }
     LaunchedEffect(ayah.isBookmarked) {
         if (ayah.isBookmarked && !wasBookmarked) {
-            pop.snapTo(0.55f)
+            pop.snapTo(0.9f)
             pop.animateTo(1f, keyframes {
-                durationMillis = 340
-                1.18f at 187 using EaseOutExpo
+                durationMillis = 260
+                1.1f at 120 using EaseOutExpo
             })
         }
         wasBookmarked = ayah.isBookmarked
@@ -952,7 +944,8 @@ private fun AyahBlock(
                 // Hangs from the top hairline, 20dp in from the start edge
                 val w = 10.dp.toPx()
                 val left = if (layoutDirection == LayoutDirection.Rtl) size.width - 20.dp.toPx() - w else 20.dp.toPx()
-                scale(scaleX = 1f, scaleY = ribbon.value, pivot = Offset(left, 0f)) {
+                // Unrolls from the hairline: a clip reveals it, so the notched tail never squashes
+                clipRect(bottom = 30.dp.toPx() * ribbon.value) {
                     drawRibbon(brass, left, w, 30.dp.toPx(), 0.76f)
                 }
             }
@@ -1011,8 +1004,8 @@ private fun AyahBlock(
 
             AnimatedVisibility(
                 visible = isOpen,
-                enter = expandVertically(tween(320, easing = EaseOutExpo)) + fadeIn(tween(200)),
-                exit = shrinkVertically(tween(240, easing = EaseOutExpo)) + fadeOut(tween(160))
+                enter = expandVertically(tween(250, easing = EaseOutExpo)) + fadeIn(tween(200)),
+                exit = shrinkVertically(tween(200, easing = EaseOutExpo)) + fadeOut(tween(120))
             ) {
                 Row(
                     horizontalArrangement = Arrangement.End,

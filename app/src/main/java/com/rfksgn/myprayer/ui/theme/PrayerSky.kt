@@ -6,6 +6,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -58,10 +59,15 @@ val SkyStone = Color(0xFF5F5C55)
 @Composable
 fun Modifier.prayerSky(nextPrayer: String, hubCenterY: Dp): Modifier {
     val background = MaterialTheme.colorScheme.background
-    val target = prayerSky(nextPrayer, dark = background.luminance() < 0.5f)
+    val dark = background.luminance() < 0.5f
+    val target = prayerSky(nextPrayer, dark)
     val spec = tween<Float>(800)
-    val sky by animateColorAsState(target.sky, tween(800), label = "sky")
-    val body by animateColorAsState(target.body, tween(800), label = "body")
+    // Keyed on the theme: a theme flip snaps the sky with the background; only a new prayer fades it
+    val (skyState, bodyState) = key(dark) {
+        animateColorAsState(target.sky, tween(800), label = "sky") to animateColorAsState(target.body, tween(800), label = "body")
+    }
+    val sky by skyState
+    val body by bodyState
     val sunX by animateFloatAsState(target.sunX, spec, label = "sunX")
     val sunUp by animateFloatAsState(target.sunUp, spec, label = "sunUp")
 

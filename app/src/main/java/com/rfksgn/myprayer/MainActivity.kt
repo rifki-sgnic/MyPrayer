@@ -324,17 +324,18 @@ class MainActivity : ComponentActivity() {
                         permissionLauncher.launch(permissions.toTypedArray())
                     }
                     // Shared axis along the bar: a tab to the right enters from the right and pushes the old page
-                    // left (the reverse going back), sliding a fifth of the width over 300ms. The old page fades
-                    // out in 90ms and the new one fades in over the next 210ms, in step with the bar's colours.
+                    // left (the reverse going back), sliding a tenth of the width over 250ms: tabs switch tens of
+                    // times a day, so the move stays short. The old page fades out in 75ms and the new one fades in
+                    // over the next 175ms, in step with the bar's colours.
                     // "Remove animations" makes it a cut.
                     AnimatedContent(
                         targetState = selectedTab,
                         transitionSpec = {
                             val dir = if (targetState > initialState) 1 else -1
-                            val slide = tween<IntOffset>(300, easing = EmphasizedEasing)
-                            (slideInHorizontally(slide) { w -> dir * w / 5 } +
-                                    fadeIn(tween(210, delayMillis = 90))) togetherWith
-                                    (slideOutHorizontally(slide) { w -> -dir * w / 5 } + fadeOut(tween(90)))
+                            val slide = tween<IntOffset>(250, easing = EmphasizedEasing)
+                            (slideInHorizontally(slide) { w -> dir * w / 10 } +
+                                    fadeIn(tween(175, delayMillis = 75))) togetherWith
+                                    (slideOutHorizontally(slide) { w -> -dir * w / 10 } + fadeOut(tween(75)))
                         },
                         label = "tabContent"
                     ) { tab ->
@@ -439,19 +440,20 @@ class MainActivity : ComponentActivity() {
 }
 
 /**
- * A destination's outlined and filled icon, and how far it turns as it settles when tapped:
- * Kiblat's needle swings onto its line, Setelan's gear gives a quarter turn; the others only grow in.
+ * A destination's outlined and filled icon, and how it answers a tap: [turn] is a lasting turn in degrees
+ * (Setelan's gear gives a quarter turn, which looks the same once it lands), [kick] a push in degrees per second
+ * that swings the icon out and lets it settle back (Kiblat's needle). Every icon also dips in size.
  */
 // Material 3 emphasized easing: quick start, long gentle settle
 private val EmphasizedEasing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
 
-private class NavTab(val label: String, val outlined: ImageVector, val filled: ImageVector, val turn: Float)
+private class NavTab(val label: String, val outlined: ImageVector, val filled: ImageVector, val turn: Float = 0f, val kick: Float = 0f)
 
 private val navTabs = listOf(
-    NavTab("Jadwal", Icons.Outlined.Schedule, Icons.Filled.Schedule, 0f),
-    NavTab("Kiblat", Icons.Outlined.Explore, Icons.Filled.Explore, -45f),
-    NavTab("Al-Quran", Icons.AutoMirrored.Outlined.MenuBook, Icons.AutoMirrored.Filled.MenuBook, 0f),
-    NavTab("Setelan", Icons.Outlined.Settings, Icons.Filled.Settings, 90f)
+    NavTab("Jadwal", Icons.Outlined.Schedule, Icons.Filled.Schedule),
+    NavTab("Kiblat", Icons.Outlined.Explore, Icons.Filled.Explore, kick = -900f),
+    NavTab("Al-Quran", Icons.AutoMirrored.Outlined.MenuBook, Icons.AutoMirrored.Filled.MenuBook),
+    NavTab("Setelan", Icons.Outlined.Settings, Icons.Filled.Settings, turn = 90f)
 )
 
 @Composable
@@ -461,8 +463,8 @@ private fun AppNavigationBar(
     missingPermissions: Int,
     onSelect: (Int) -> Unit
 ) {
-    // Colours move with the incoming page (90ms delay, 210ms), so bar and page change together
-    val spec = tween<Color>(210, delayMillis = 90)
+    // Colours move with the incoming page (75ms delay, 175ms), so bar and page change together
+    val spec = tween<Color>(175, delayMillis = 75)
     val surface by animateColorAsState(scheme.surface, spec, label = "navSurface")
     val line by animateColorAsState(scheme.outline, spec, label = "navLine")
     val accent by animateColorAsState(scheme.primary, spec, label = "navAccent")
@@ -470,8 +472,8 @@ private fun AppNavigationBar(
     val badge by animateColorAsState(scheme.secondary, spec, label = "navBadge")
     // One pulse per tap, reselects included, so every tap is answered
     val pulses = remember { mutableStateListOf(0, 0, 0, 0) }
-    // The pointer travels the scale with the 300ms page slide; read only in the draw phase
-    val pointerPos by animateFloatAsState(selectedTab.toFloat(), tween(300, easing = EmphasizedEasing), label = "navPointer")
+    // The pointer travels the scale with the 250ms page slide; read only in the draw phase
+    val pointerPos by animateFloatAsState(selectedTab.toFloat(), tween(250, easing = EmphasizedEasing), label = "navPointer")
 
     Column {
         HorizontalDivider(thickness = 1.dp, color = line)
@@ -554,12 +556,15 @@ private fun AppNavigationBar(
 
 @Composable
 private fun NavIcon(tab: NavTab, selected: Boolean, pulse: Int) {
-    // Rests at 1; each tap restarts it from 0 and lets it settle with a slight overshoot
-    val settle = remember { Animatable(1f) }
+    // Each tap pushes from wherever the icon is, never from a jumped-to pose, so a second tap carries on
+    // from the first: the size dips about 9% and returns, the turn springs on to its next resting angle.
+    val scale = remember { Animatable(1f) }
+    val rotation = remember { Animatable(0f) }
     LaunchedEffect(pulse) {
         if (pulse > 0) {
-            settle.snapTo(0f)
-            settle.animateTo(1f, spring(dampingRatio = 0.8f, stiffness = 380f))
+            val settle = spring<Float>(dampingRatio = 0.8f, stiffness = 380f)
+            launch { scale.animateTo(1f, settle, initialVelocity = -4f) }
+            rotation.animateTo(rotation.targetValue + tab.turn, settle, initialVelocity = tab.kick)
         }
     }
     Crossfade(targetState = selected, animationSpec = tween(150), label = "navIconFill") { filled ->
@@ -567,11 +572,9 @@ private fun NavIcon(tab: NavTab, selected: Boolean, pulse: Int) {
             imageVector = if (filled) tab.filled else tab.outlined,
             contentDescription = null,
             modifier = Modifier.graphicsLayer {
-                val p = settle.value
-                rotationZ = tab.turn * (1f - p)
-                val s = 0.9f + 0.1f * p
-                scaleX = s
-                scaleY = s
+                rotationZ = rotation.value
+                scaleX = scale.value
+                scaleY = scale.value
             }
         )
     }

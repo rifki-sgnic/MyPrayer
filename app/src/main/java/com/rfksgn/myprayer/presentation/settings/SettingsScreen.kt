@@ -13,8 +13,14 @@ import android.provider.OpenableColumns
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -64,6 +70,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -103,6 +110,7 @@ import com.rfksgn.myprayer.core.permission.checkNotificationPermission
 import com.rfksgn.myprayer.data.local.CustomAdzanAudio
 import com.rfksgn.myprayer.domain.model.PrayerSchedule
 import com.rfksgn.myprayer.domain.model.ReminderMode
+import com.rfksgn.myprayer.presentation.quran.EaseOutExpo
 import com.rfksgn.myprayer.ui.theme.SkyStone
 import com.rfksgn.myprayer.ui.theme.prayerSkyColors
 import kotlin.math.cos
@@ -219,8 +227,12 @@ fun SettingsScreen(
     val scheme = remember(baseScheme) { if (isDark) baseScheme else baseScheme.copy(onSurfaceVariant = SkyStone) }
     val nextPrayer = schedule?.nextPrayerName.orEmpty()
     val (skyTarget, bodyTarget) = prayerSkyColors(nextPrayer, isDark)
-    val sky by animateColorAsState(skyTarget, tween(800), label = "sky")
-    val body by animateColorAsState(bodyTarget, tween(800), label = "body")
+    // Keyed on the theme: a theme flip snaps the sky with the background; only a new prayer fades it
+    val (skyState, bodyState) = key(isDark) {
+        animateColorAsState(skyTarget, tween(800), label = "sky") to animateColorAsState(bodyTarget, tween(800), label = "body")
+    }
+    val sky by skyState
+    val body by bodyState
 
     val times = schedule?.let { listOf(it.fajr, it.dhuhr, it.asr, it.maghrib, it.isha) } ?: FallbackTimes
     val modeOf = { prayer: String -> reminderModes[prayer] ?: ReminderMode.ADZAN }
@@ -464,14 +476,26 @@ private fun ReteDial(
                 .clearAndSetSemantics {},
             contentAlignment = Alignment.Center
         ) {
-            if (missing == 0) {
-                Icon(Icons.Default.Check, contentDescription = null, tint = scheme.background, modifier = Modifier.size(26.dp))
-            } else {
-                Text(
-                    text = "$missing",
-                    style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum"),
-                    color = scheme.background
-                )
+            AnimatedContent(
+                targetState = missing,
+                transitionSpec = {
+                    (fadeIn(tween(200, delayMillis = 100)) +
+                            scaleIn(tween(200, delayMillis = 100, easing = EaseOutExpo), initialScale = 0.9f)) togetherWith
+                            fadeOut(tween(100)) using
+                            SizeTransform(clip = false)
+                },
+                contentAlignment = Alignment.Center,
+                label = "hubGlyph"
+            ) { count ->
+                if (count == 0) {
+                    Icon(Icons.Default.Check, contentDescription = null, tint = scheme.background, modifier = Modifier.size(26.dp))
+                } else {
+                    Text(
+                        text = "$count",
+                        style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum"),
+                        color = scheme.background
+                    )
+                }
             }
         }
 

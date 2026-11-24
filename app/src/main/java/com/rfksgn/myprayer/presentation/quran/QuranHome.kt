@@ -79,6 +79,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -300,6 +302,10 @@ internal fun QuranHome(
 
 /* ── Terakhir dibaca: the page you left ── */
 
+// The page the ribbon last swung for. Outlives the card, which is disposed on every tab switch, so coming back
+// to Al-Quran without having read on doesn't replay it. ponytail: process-wide, so a restored process swings once.
+private var swungFor: Pair<Int, Int>? = null
+
 @Composable
 private fun LastReadCard(
     uiState: QuranUiState,
@@ -317,20 +323,21 @@ private fun LastReadCard(
     val pressed by interaction.collectIsPressedAsState()
     val press by animateFloatAsState(if (pressed) 0.985f else 1f, tween(160, easing = EaseOutExpo), label = "cardPress")
 
-    // The ribbon drops onto the page and swings to rest: on arrival, and again whenever the page turns
-    val drop = remember { Animatable(0f) }
+    // The ribbon drops onto the page and swings to rest: the first time it shows, and again whenever the page turns
+    val page = last.surahNumber to last.ayahNumber
+    val drop = remember { Animatable(if (page == swungFor) 1f else 0f) }
     val swing = remember { Animatable(0f) }
-    LaunchedEffect(last.surahNumber, last.ayahNumber) {
+    LaunchedEffect(page) {
+        if (page == swungFor) return@LaunchedEffect
+        swungFor = page
         drop.snapTo(0f)
         swing.snapTo(0f)
         delay(150)
-        launch { drop.animateTo(1f, tween(380, easing = EaseOutExpo)) }
+        launch { drop.animateTo(1f, tween(300, easing = EaseOutExpo)) }
         swing.animateTo(0f, keyframes {
-            durationMillis = 1150
-            9f at 380 using SwingEasing
-            -5f at 600
-            2.5f at 800
-            -1f at 960
+            durationMillis = 700
+            7f at 300 using SwingEasing
+            -2.5f at 500
         })
     }
 
@@ -374,9 +381,9 @@ private fun LastReadCard(
                     targetState = LastPage(last.surahNumber, last.ayahNumber, uiState.lastReadAyah, surah),
                     contentKey = { it.surah to it.ayah },
                     transitionSpec = {
-                        (fadeIn(tween(420, delayMillis = 180, easing = EaseOutExpo)) +
-                                slideInVertically(tween(520, delayMillis = 180, easing = EaseOutExpo)) { it / 6 }) togetherWith
-                                (fadeOut(tween(300)) + slideOutVertically(tween(380, easing = EaseOutExpo)) { -it / 6 }) using
+                        (fadeIn(tween(200, delayMillis = 50)) +
+                                slideInVertically(tween(250, easing = EaseOutExpo)) { it / 6 }) togetherWith
+                                (fadeOut(tween(90)) + slideOutVertically(tween(250, easing = EaseOutExpo)) { -it / 6 }) using
                                 SizeTransform(clip = false)
                     },
                     label = "lastReadPage"
@@ -516,8 +523,8 @@ private fun WiridSection(
                         .padding(end = 10.dp)
                         .offset(y = (-8).dp)
                         .size(width = 10.dp, height = 18.dp)
-                        .graphicsLayer { scaleY = ribbon; transformOrigin = TransformOrigin(0.5f, 0f) }
-                ) { drawRibbon(brass, 0f, size.width, size.height, 0.74f) }
+                // Unrolls from the top: a clip reveals it, so the notched tail never squashes
+                ) { clipRect(bottom = size.height * ribbon) { drawRibbon(brass, 0f, size.width, size.height, 0.74f) } }
             }
             Text(
                 text = if (allDone) "Wirid hari ini selesai" else "Wirid hari ini",
@@ -843,8 +850,10 @@ internal fun Octagram(label: String, state: OctState, seal: Boolean, animateDone
         delay(450)
         glint.animateTo(1f, tween(900, easing = EaseOutExpo))
     }
-    val fillAlpha = if (done) ((draw.value - 0.55f) / 0.3f).coerceIn(0f, 1f) else 0f
-    val badge = if (done) ((draw.value - 0.7f) / 0.3f).coerceIn(0f, 1f) else 0f
+    // Read in draw and on the layer, so the draw-in recomposes only once, when the check first shows
+    val fillAlpha = { if (done) ((draw.value - 0.55f) / 0.3f).coerceIn(0f, 1f) else 0f }
+    val badge = { if (done) ((draw.value - 0.7f) / 0.3f).coerceIn(0f, 1f) else 0f }
+    val showBadge by remember(done) { derivedStateOf { badge() > 0f } }
 
     Box(Modifier.size(36.dp), contentAlignment = Alignment.Center) {
         Canvas(Modifier.size(36.dp)) {
@@ -857,7 +866,8 @@ internal fun Octagram(label: String, state: OctState, seal: Boolean, animateDone
                 addRect(androidx.compose.ui.geometry.Rect(6.5f * u, 6.5f * u, 25.5f * u, 25.5f * u))
                 moveTo(16f * u, 2.6f * u); lineTo(29.4f * u, 16f * u); lineTo(16f * u, 29.4f * u); lineTo(2.6f * u, 16f * u); close()
             }
-            if (fillAlpha > 0f) drawPath(star, fillColor, alpha = fillAlpha)
+            val fill = fillAlpha()
+            if (fill > 0f) drawPath(star, fillColor, alpha = fill)
             val (lineColor, lineAlpha, width) = when (state) {
                 OctState.Now -> Triple(brass, 1f, 1.4f)
                 OctState.Part -> Triple(primary, 0.85f, 1.1f)
@@ -893,12 +903,12 @@ internal fun Octagram(label: String, state: OctState, seal: Boolean, animateDone
             },
             modifier = Modifier.clearAndSetSemantics { }
         )
-        if (badge > 0f) {
+        if (showBadge) {
             Box(
                 Modifier
                     .align(Alignment.TopEnd)
                     .offset(x = 4.dp, y = (-3).dp)
-                    .graphicsLayer { scaleX = badge; scaleY = badge; alpha = badge }
+                    .graphicsLayer { val b = badge(); scaleX = b; scaleY = b; alpha = b }
                     .size(18.dp)
                     .background(bg, CircleShape)
                     .padding(1.dp)

@@ -37,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -184,8 +185,10 @@ fun QiblaScreen(
     val isDark = baseScheme.background.luminance() < 0.5f
     val scheme = remember(baseScheme) { if (isDark) baseScheme else baseScheme.copy(onSurfaceVariant = SkyStone) }
     val (skyTarget, bodyTarget) = prayerSkyColors(nextPrayerName, isDark)
-    val sky = animateColorAsState(skyTarget, tween(800), label = "sky")
-    val body = animateColorAsState(bodyTarget, tween(800), label = "body")
+    // Keyed on the theme: a theme flip snaps the sky with the background; only a new prayer fades it
+    val (sky, body) = key(isDark) {
+        animateColorAsState(skyTarget, tween(800), label = "sky") to animateColorAsState(bodyTarget, tween(800), label = "body")
+    }
     val mark = animateColorAsState(if (isAligned) scheme.secondary else scheme.primary, label = "mark")
     val statusTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
