@@ -86,6 +86,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.merge
 import androidx.compose.material3.Text
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
@@ -260,9 +261,9 @@ class MainActivity : ComponentActivity() {
                 }
 
                 val snackbarHostState = remember { SnackbarHostState() }
-                LaunchedEffect(viewModel) {
-                    // collectLatest: a newer message replaces the one on screen
-                    viewModel.messages.collectLatest { message ->
+                LaunchedEffect(viewModel, quranViewModel) {
+                    // collectLatest: a newer message replaces the one on screen; Quran's wirid undo shares the host
+                    merge(viewModel.messages, quranViewModel.messages).collectLatest { message ->
                         val result = snackbarHostState.showSnackbar(
                             message = message.text,
                             actionLabel = message.actionLabel,
@@ -398,6 +399,13 @@ class MainActivity : ComponentActivity() {
                             onToggleShowLatin = quranViewModel::toggleShowLatin,
                             onSetArabicSize = quranViewModel::setArabicSize,
                             onDownloadFullQuran = quranViewModel::downloadAll30JuzOffline,
+                            onNavigateSurah = quranViewModel::navigateSurah,
+                            onContinueKhatam = quranViewModel::continueKhatam,
+                            onResumeLastRead = quranViewModel::resumeLastRead,
+                            onToggleWiridDone = quranViewModel::toggleWiridDone,
+                            onToggleWiridActive = quranViewModel::toggleWiridActive,
+                            onStartNewKhatam = quranViewModel::startNewKhatam,
+                            schedule = uiState.schedule,
                             // Each side of the list/reader transition picks its own padding from this
                             contentPadding = innerPadding
                         ) } }

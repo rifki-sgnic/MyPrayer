@@ -22,6 +22,10 @@ class QuranRepository(
     fun getAyahsFlow(surahNumber: Int): Flow<List<AyahEntity>> =
         dao.getAyahsBySurahFlow(surahNumber)
 
+    /** Null until that surah's ayahs are cached. */
+    fun getAyahFlow(surahNumber: Int, ayahNumber: Int): Flow<AyahEntity?> =
+        dao.getAyahFlow(surahNumber, ayahNumber)
+
     suspend fun getSurahByNumber(surahNumber: Int): SurahEntity? =
         dao.getSurahByNumber(surahNumber)
 

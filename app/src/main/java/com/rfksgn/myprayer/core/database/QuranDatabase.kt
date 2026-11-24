@@ -61,6 +61,9 @@ interface QuranDao {
     @Query("SELECT * FROM ayahs WHERE surahNumber = :surahNumber ORDER BY ayahNumber ASC")
     fun getAyahsBySurahFlow(surahNumber: Int): Flow<List<AyahEntity>>
 
+    @Query("SELECT * FROM ayahs WHERE surahNumber = :surahNumber AND ayahNumber = :ayahNumber LIMIT 1")
+    fun getAyahFlow(surahNumber: Int, ayahNumber: Int): Flow<AyahEntity?>
+
     @Query("SELECT * FROM ayahs WHERE isBookmarked = 1 ORDER BY id ASC")
     fun getBookmarkedAyahsFlow(): Flow<List<AyahEntity>>
 
