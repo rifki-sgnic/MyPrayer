@@ -11,6 +11,7 @@ import com.rfksgn.myprayer.core.alarm.AdzanAlarmScheduler
 import com.rfksgn.myprayer.core.location.LocationTracker
 import com.rfksgn.myprayer.core.service.AdzanForegroundService
 import com.rfksgn.myprayer.data.local.CustomAdzanAudio
+import com.rfksgn.myprayer.data.local.FridayReminderConfig
 import com.rfksgn.myprayer.data.local.LocationPreferences
 import com.rfksgn.myprayer.domain.model.PrayerSchedule
 import com.rfksgn.myprayer.domain.model.ReminderMode
@@ -37,7 +38,8 @@ data class HomeUiState(
     val isUpdatingLocation: Boolean = false,
     val reminderModes: Map<String, ReminderMode> = emptyMap(),
     val customAudio: CustomAdzanAudio = CustomAdzanAudio(),
-    val adzanVolume: Float = 0.7f
+    val adzanVolume: Float = 0.7f,
+    val fridayConfig: FridayReminderConfig = FridayReminderConfig()
 )
 
 /** One-off feedback shown as a snackbar; the action (undo, retry, open settings) is optional. */
@@ -73,19 +75,28 @@ class HomeViewModel(
         viewModelScope.launch {
             combine(
                 locationPrefs.locationFlow,
-                locationPrefs.reminderModesFlow
-            ) { savedLoc, modesMap ->
+                locationPrefs.reminderModesFlow,
+                locationPrefs.fridayReminderFlow
+            ) { savedLoc, modesMap, fridayCfg ->
                 scheduleDate = LocalDate.now()
                 val schedule = getPrayerSchedule(savedLoc.latitude, savedLoc.longitude)
-                alarmScheduler.scheduleDailyAlarms(schedule, modesMap)
-                Triple(schedule, savedLoc, modesMap)
-            }.collect { (schedule, savedLoc, modesMap) ->
+                alarmScheduler.scheduleDailyAlarms(
+                    schedule = schedule,
+                    modesMap = modesMap,
+                    latitude = savedLoc.latitude,
+                    longitude = savedLoc.longitude,
+                    fridayConfig = fridayCfg
+                )
+                Triple(schedule, savedLoc, modesMap) to fridayCfg
+            }.collect { (triple, fridayCfg) ->
+                val (schedule, savedLoc, modesMap) = triple
                 _uiState.update {
                     it.copy(
                         schedule = schedule,
                         locationName = savedLoc.cityName,
                         isDefaultLocation = savedLoc.isDefault,
-                        reminderModes = modesMap
+                        reminderModes = modesMap,
+                        fridayConfig = fridayCfg
                     )
                 }
             }
@@ -247,4 +258,19 @@ class HomeViewModel(
         appContext.startService(intent)
     }
 
+    fun setFridayReminder(enabled: Boolean, minutesBefore: Int) {
+        viewModelScope.launch {
+            locationPrefs.setFridayReminder(enabled, minutesBefore)
+        }
+    }
+
+    fun testFridayReminder() {
+        val mins = _uiState.value.fridayConfig.minutesBefore
+        val intent = Intent(appContext, AdzanForegroundService::class.java).apply {
+            action = AdzanForegroundService.ACTION_START_ADZAN
+            putExtra(AdzanForegroundService.EXTRA_PRAYER_NAME, AdzanAlarmScheduler.FRIDAY_PREP_PRAYER_KEY)
+            putExtra(AdzanForegroundService.EXTRA_MINUTES_BEFORE, mins)
+        }
+        ContextCompat.startForegroundService(appContext, intent)
+    }
 }

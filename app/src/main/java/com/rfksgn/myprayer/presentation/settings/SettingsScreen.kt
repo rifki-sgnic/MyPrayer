@@ -43,6 +43,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -65,6 +67,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -109,6 +112,7 @@ import com.rfksgn.myprayer.core.permission.checkExactAlarmPermission
 import com.rfksgn.myprayer.core.permission.checkNotificationPermission
 import com.rfksgn.myprayer.data.local.CustomAdzanAudio
 import com.rfksgn.myprayer.domain.model.PrayerSchedule
+import com.rfksgn.myprayer.data.local.FridayReminderConfig
 import com.rfksgn.myprayer.domain.model.ReminderMode
 import com.rfksgn.myprayer.presentation.quran.EaseOutExpo
 import com.rfksgn.myprayer.ui.theme.SkyStone
@@ -128,6 +132,9 @@ fun SettingsScreen(
     onFajrAudioSelected: (String?, String) -> Unit,
     onTestAdzan: (ReminderMode, Boolean) -> Unit,
     onStopAdzan: () -> Unit,
+    fridayConfig: FridayReminderConfig,
+    onFridayConfigChange: (Boolean, Int) -> Unit,
+    onTestFridayReminder: () -> Unit,
     modifier: Modifier = Modifier,
     // hoisted so re-tapping Setelan in the navigation bar can scroll back to the dial
     scrollState: ScrollState = rememberScrollState()
@@ -391,6 +398,117 @@ fun SettingsScreen(
                 )
             }
         }
+                // 4. PERSIAPAN SHOLAT JUMAT
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = "Jumat",
+                    style = TextStyle(fontSize = 16.sp, lineHeight = 24.sp, fontWeight = FontWeight.SemiBold),
+                    modifier = Modifier.padding(top = 20.dp, bottom = 4.dp).semantics { heading() }
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 64.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                        Text(
+                            text = "Pengingat sebelum Jumat",
+                            style = TextStyle(fontSize = 14.sp, lineHeight = 20.sp, fontWeight = FontWeight.SemiBold),
+                            color = scheme.onSurface
+                        )
+                        Text(
+                            text = "Notifikasi & getar tiap Jumat sebelum Dzuhur",
+                            style = TextStyle(fontSize = 13.sp, lineHeight = 18.sp),
+                            color = scheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = fridayConfig.enabled,
+                        onCheckedChange = { isChecked ->
+                            onFridayConfigChange(isChecked, fridayConfig.minutesBefore)
+                        }
+                    )
+                }
+
+                if (fridayConfig.enabled) {
+                    HorizontalDivider(color = scheme.outlineVariant)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 64.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Waktu pengingat",
+                            style = TextStyle(fontSize = 14.sp, lineHeight = 20.sp, fontWeight = FontWeight.SemiBold),
+                            color = scheme.onSurface
+                        )
+
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(scheme.surfaceVariant)
+                                .padding(3.dp)
+                                .selectableGroup(),
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            listOf(30, 45, 60).forEach { mins ->
+                                val isSelected = fridayConfig.minutesBefore == mins
+                                val fill by animateColorAsState(
+                                    if (isSelected) scheme.primary else Color.Transparent,
+                                    label = "friday_min_fill"
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .height(40.dp)
+                                        .clip(RoundedCornerShape(9.dp))
+                                        .background(fill)
+                                        .selectable(
+                                            selected = isSelected,
+                                            role = Role.RadioButton,
+                                            onClick = { onFridayConfigChange(true, mins) }
+                                        )
+                                        .padding(horizontal = 12.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "$mins mnt",
+                                        style = TextStyle(
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            fontFeatureSettings = "tnum"
+                                        ),
+                                        color = if (isSelected) scheme.onPrimary else scheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp, bottom = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        TestKey(
+                            label = "Jumat",
+                            description = "Tes pengingat Jumat",
+                            icon = Icons.Default.Vibration,
+                            onClick = onTestFridayReminder
+                        )
+                        TestKey(
+                            label = "Hentikan",
+                            description = "Hentikan tes",
+                            icon = Icons.Default.Stop,
+                            stop = true,
+                            onClick = onStopAdzan
+                        )
+                    }
+                }
     }
 }
 

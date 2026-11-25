@@ -11,15 +11,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
@@ -30,6 +31,8 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Contrast
 import androidx.compose.material.icons.filled.DarkMode
@@ -77,9 +80,12 @@ import com.rfksgn.myprayer.data.local.ThemeMode
 import com.rfksgn.myprayer.domain.model.ReminderMode
 import com.rfksgn.myprayer.ui.theme.SkyStone
 import com.rfksgn.myprayer.ui.theme.launchEntrance
+import com.rfksgn.myprayer.ui.theme.prayerSky
 import com.rfksgn.myprayer.ui.theme.readout
 import com.rfksgn.myprayer.ui.theme.subLine
-import com.rfksgn.myprayer.ui.theme.prayerSky
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -95,6 +101,7 @@ fun HomeScreen(
     onOpenSettings: () -> Unit,
     themeMode: ThemeMode,
     onCycleThemeMode: () -> Unit,
+    onOpenAlKahf: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val schedule = uiState.schedule
@@ -110,22 +117,33 @@ fun HomeScreen(
         return
     }
 
+    val isFriday = remember(schedule.dateFormatted) {
+        LocalDate.now().dayOfWeek == DayOfWeek.FRIDAY
+    }
+
+    val showAlKahfBanner = remember(schedule.maghrib, uiState.countdownText) {
+        isAlKahfSunnahWindow(schedule.maghrib)
+    }
+
     val readiness = rememberAdzanReadiness()
     val hijriDateString = remember(schedule.dateFormatted) { getFormattedHijriDate() }
     val currentTime = remember(uiState.countdownText) { LocalTime.now() }
 
-    val prayers = remember(schedule) {
+    val prayers = remember(schedule, isFriday) {
         listOf(
             PrayerRowData("Subuh", schedule.fajr, isSunnah = false),
             PrayerRowData("Terbit", schedule.sunrise, isSunnah = true),
-            PrayerRowData("Dzuhur", schedule.dhuhr, isSunnah = false),
+            PrayerRowData(if (isFriday) "Jumat" else "Dzuhur", schedule.dhuhr, isSunnah = false, keyName = "Dzuhur"),
             PrayerRowData("Ashar", schedule.asr, isSunnah = false),
             PrayerRowData("Maghrib", schedule.maghrib, isSunnah = false),
             PrayerRowData("Isya", schedule.isha, isSunnah = false)
         )
     }
 
-    val nextPrayerTargetTime = prayers.find { it.name == schedule.nextPrayerName }?.time ?: ""
+    val nextPrayerItem = prayers.find { it.keyName == schedule.nextPrayerName }
+    val nextPrayerTargetName = nextPrayerItem?.name ?: schedule.nextPrayerName
+    val nextPrayerTargetTime = nextPrayerItem?.time ?: ""
+
     val activeReminders = uiState.reminderModes.count { it.value != ReminderMode.SILENT }
 
     // Secondary text sits on the tinted sky; deepen Stone in light mode so it keeps ≥4.5:1
@@ -156,30 +174,35 @@ fun HomeScreen(
         ) {
           Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             // 1. HEADER: dates with the location under them, and the theme hub at the plate's centre
-            Row(modifier = Modifier.fillMaxWidth().launchEntrance(0)) {
-                Column(modifier = Modifier.weight(1f)) {
-                  Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(
-                        text = hijriDateString.uppercase(),
-                        style = TextStyle(
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.4.sp,
-                            color = MaterialTheme.colorScheme.secondary
+            Row(modifier = Modifier.fillMaxWidth().launchEntrance(0), verticalAlignment = Alignment.Top) {
+                FlowRow(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    itemVerticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = hijriDateString.uppercase(),
+                            style = TextStyle(
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.4.sp,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
                         )
+                        Text(
+                            text = schedule.dateFormatted,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    LocationPill(
+                        locationName = uiState.locationName,
+                        isUpdating = uiState.isUpdatingLocation,
+                        onClick = onRefreshLocationClick
                     )
-                    Text(
-                        text = schedule.dateFormatted,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                  }
-                  LocationPill(
-                      locationName = uiState.locationName,
-                      isUpdating = uiState.isUpdatingLocation,
-                      onClick = onRefreshLocationClick
-                  )
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 ThemeHub(mode = themeMode, onClick = onCycleThemeMode)
@@ -198,20 +221,28 @@ fun HomeScreen(
 
             // 2. NEXT PRAYER: the name leads; time and countdown share one line beneath it
             Box(Modifier.launchEntrance(2)) {
-            NextPrayerBlock(
-                nextPrayerName = schedule.nextPrayerName,
-                nextPrayerTime = nextPrayerTargetTime,
-                countdownText = uiState.countdownText,
-                qiblaDirection = schedule.qiblaDirection,
-                // Location comes first on first run; permissions are surfaced once it is set
-                readiness = if (uiState.isDefaultLocation) null else readiness,
-                activeReminders = activeReminders,
-                onFixReadiness = onOpenSettings
-            )
+                NextPrayerBlock(
+                    nextPrayerName = nextPrayerTargetName,
+                    nextPrayerTime = nextPrayerTargetTime,
+                    countdownText = uiState.countdownText,
+                    qiblaDirection = schedule.qiblaDirection,
+                    // Location comes first on first run; permissions are surfaced once it is set
+                    readiness = if (uiState.isDefaultLocation) null else readiness,
+                    activeReminders = activeReminders,
+                    onFixReadiness = onOpenSettings
+                )
             }
           }
 
+            // Banner Sunnah Jumat: Muncul otomatis Kamis ba'da Maghrib s/d Jumat sebelum Maghrib
+            if (showAlKahfBanner) {
+                Box(Modifier.launchEntrance(3)) {
+                    AlKahfSunnahCard(onClick = onOpenAlKahf)
+                }
+            }
+
             // 3. SCHEDULE
+            val scheduleOffset = if (showAlKahfBanner) 4 else 3
             Column(
                 modifier = Modifier.padding(top = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -219,7 +250,7 @@ fun HomeScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .launchEntrance(3)
+                        .launchEntrance(scheduleOffset)
                         .padding(horizontal = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -244,11 +275,11 @@ fun HomeScreen(
 
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     prayers.forEachIndexed { index, item ->
-                        val isNext = item.name == schedule.nextPrayerName
+                        val isNext = item.keyName == schedule.nextPrayerName
                         val isPassed = isPrayerPassed(item.time, currentTime, isNext)
-                        val mode = uiState.reminderModes[item.name] ?: ReminderMode.ADZAN
+                        val mode = uiState.reminderModes[item.keyName] ?: ReminderMode.ADZAN
 
-                        Box(Modifier.launchEntrance(4 + index)) {
+                        Box(Modifier.launchEntrance(scheduleOffset + 1 + index)) {
                             PrayerTimelineItem(
                                 name = item.name,
                                 time = item.time,
@@ -256,7 +287,7 @@ fun HomeScreen(
                                 isPassed = isPassed,
                                 isSunnah = item.isSunnah,
                                 reminderMode = mode,
-                                onToggleAlarm = { onToggleAlarm(item.name) }
+                                onToggleAlarm = { onToggleAlarm(item.keyName) }
                             )
                         }
                     }
@@ -705,7 +736,8 @@ private fun PrayerTimelineItem(
 private data class PrayerRowData(
     val name: String,
     val time: String,
-    val isSunnah: Boolean
+    val isSunnah: Boolean,
+    val keyName: String = name
 )
 
 private fun isPrayerPassed(timeStr: String, now: LocalTime, isNext: Boolean): Boolean {
@@ -760,5 +792,80 @@ private fun getFormattedHijriDate(): String {
         "$day ${monthNames.getOrElse(month - 1) { "" }} $year H"
     } catch (e: Exception) {
         "Kalender Hijriah"
+    }
+}
+
+@Composable
+private fun AlKahfSunnahCard(onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.secondaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Sunnah Hari Jumat",
+                    style = TextStyle(
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.8.sp,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                )
+                Text(
+                    text = "Baca Surah Al-Kahfi (QS. 18)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = "Buka Surah Al-Kahfi",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+    }
+}
+
+private fun isAlKahfSunnahWindow(maghribTimeStr: String): Boolean {
+    return try {
+        val now = LocalDateTime.now()
+        val parts = maghribTimeStr.split(":")
+        val maghribToday = LocalTime.of(parts[0].toInt(), parts[1].toInt())
+
+        when (now.dayOfWeek) {
+            DayOfWeek.THURSDAY -> !now.toLocalTime().isBefore(maghribToday) // Kamis >= Maghrib
+            DayOfWeek.FRIDAY -> now.toLocalTime().isBefore(maghribToday)    // Jumat < Maghrib
+            else -> false
+        }
+    } catch (e: Exception) {
+        false
     }
 }
