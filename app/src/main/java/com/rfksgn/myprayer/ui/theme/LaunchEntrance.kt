@@ -11,11 +11,11 @@ import androidx.compose.ui.unit.dp
 /*
  * The launch cascade (DESIGN.md: Launch). As the splash fades, Jadwal settles in from the top: each block
  * fades in and rises over 220ms. Indices: 0 header, 1 location card (first run), 2 next prayer,
- * 3 schedule label, 4-9 the six rows.
+ * 3 schedule label, 4-9 the six rows. When the Al-Kahf banner shows it takes 3 and everything below shifts by one.
  */
 private const val CascadeItemMs = 220f
 // When each block starts (ms). Gaps shrink down the page so the group reads as one wave, not a metronome.
-private val CascadeDelayMs = floatArrayOf(0f, 30f, 50f, 70f, 80f, 88f, 94f, 98f, 100f, 100f)
+private val CascadeDelayMs = floatArrayOf(0f, 30f, 50f, 70f, 80f, 88f, 94f, 98f, 100f, 100f, 100f)
 // The next prayer leads, so it travels furthest; everything else only settles
 private const val LeadIndex = 2
 private val EmphasizedDecelerate = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)
@@ -31,7 +31,8 @@ val LocalLaunchProgress = staticCompositionLocalOf<() -> Float> { { 1f } }
 fun Modifier.launchEntrance(index: Int): Modifier {
     val progress = LocalLaunchProgress.current
     val rise = with(LocalDensity.current) { (if (index == LeadIndex) 12.dp else 6.dp).toPx() }
-    val delay = CascadeDelayMs[index]
+    // A decorative cascade must never crash the screen: extra blocks just join the last beat
+    val delay = CascadeDelayMs.getOrElse(index) { CascadeDelayMs.last() }
     return graphicsLayer {
         val elapsed = progress() * LaunchCascadeMs - delay
         val e = EmphasizedDecelerate.transform((elapsed / CascadeItemMs).coerceIn(0f, 1f))
