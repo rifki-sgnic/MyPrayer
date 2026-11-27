@@ -345,6 +345,7 @@ class MainActivity : ComponentActivity() {
                             onRefreshLocationClick = refreshLocation,
                             onToggleAlarm = { prayerName -> viewModel.cycleReminderMode(prayerName) },
                             onOpenSettings = { selectedTab = 3 },
+                            onOpenQibla = { selectedTab = 1 },
                             themeMode = mode,
                             onCycleThemeMode = {
                                 val next = ThemeMode.entries[(mode.ordinal + 1) % ThemeMode.entries.size]

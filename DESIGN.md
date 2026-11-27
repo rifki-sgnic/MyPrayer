@@ -188,6 +188,7 @@ A two-hue palette: deep evergreen for structure and state, brass gold for moment
 
 ### Secondary
 - **Brass Gold** (`brass-gold`) / **Lit Amber** (`amber-gold`, dark): the moment colour. Used for the Hijri date line, reminder icons on upcoming rows. It also marks a missing permission (warning icon). That is the only place gold means "attention" rather than "moment".
+- **Brass Ink** (`#75580C`, `BrassInk`): brass for words in light mode. Brass Gold reads at about 2:1 on limestone and the skies, so every gold text (the Hijri date, "Perbaiki", "Sunnah Hari Jumat", Setelan's next-prayer time) reads `MaterialTheme.colorScheme.brassText`: Brass Ink by day (at least 4.6:1 on all five skies), Lit Amber at night. Icons, dots, rings and the plate keep `secondary`.
 
 ### Neutral
 - **Warm Limestone** (`limestone-bg`) / **Obsidian Night** (`obsidian-bg`): screen background. Warm, never pure white or pure black.
@@ -256,7 +257,7 @@ Adding a component that reads a new role means adding that role to both schemes.
 - **Body** (500, 16sp/24sp, 0.5sp tracking; 700 for the next prayer): prayer names.
 - **Body small** (400, 14sp/20sp): permission titles and audio file names (set to 600), plus supporting copy.
 - **Label** (500, 12sp/16sp): buttons, chips, pill text, nav labels (one weight in both states).
-- **Overline** (700, 11sp, 1.2–1.5sp tracking, uppercase): section headers and the Hijri date. The "BERIKUTNYA" badge uses a 9sp, 0.8sp-tracked micro version.
+- **Overline** (700, 11sp, 1.4sp tracking, uppercase; `typography.overline`): the Hijri date, Jadwal's only overline. The "BERIKUTNYA" badge is `typography.badge` (700, 11sp, 0.8sp tracking), Material's smallest label size.
 
 ### Named Rules
 **The Steady Numerals Rule.** Every number that changes or is compared (times, countdowns, degrees, deltas, volume percentage) uses tabular figures (`fontFeatureSettings = "tnum"`). A countdown that jitters breaks the instrument.
@@ -269,14 +270,14 @@ Sizes are in sp. Shared roles live in `ui/theme/Type.kt`, not in screens:
 - **Readout** is `MaterialTheme.typography.readout` (600, 12sp, tabular), used for "Kiblat {n}°", "Arah HP {n}°" and the reminder status.
 - Kiblat's notes use Material's `bodyMedium` (14sp/20), the body-small role.
 
-Jadwal's overlines and a few other screen-local styles are still ad-hoc and should move into `Type.kt` the same way.
+- **Overline** and **Badge** are `MaterialTheme.typography.overline` and `.badge`. The prayer-row time (17sp tabular) is still screen-local and should move into `Type.kt` the same way.
 
 ## Background
 
 ### Astrolabe Plate (schedule screen)
 - **Sky:** the next prayer's sky colour at the very top, fading to the screen background by 300dp. It runs under the status bar.
 - **Plate:** altitude rings every 28dp and 24 hour lines (every 15°), 1dp, in the body colour at 25%. Centred on the theme hub (44dp in from the right edge, at the header row's middle below the status bar), visible from 46dp to 220dp from the centre and gone by 360dp, so it sits behind the header and the prayer name and never reaches the schedule rows.
-- **Theme hub:** the plate's hollow centre holds the app's theme control: a 40dp primary disc (cypress by day, jade at night) in a 48dp target, with a 6dp halo of the body colour at 14% drawn by the plate. The glyph is in the background colour: half-filled circle for Otomatis (follows the phone), sun for Terang, moon for Gelap. Each tap moves to the next mode; the choice persists and applies to every tab. On the Quran tab, Otomatis keeps its own night window (Isya to Subuh, or a dark phone). The header gives the hub row 1 to itself: Hijri and Gregorian dates on the left with the location link under them.
+- **Theme hub:** the plate's hollow centre holds the app's theme control: a 40dp Paper / Pine Surface disc with a 1dp primary ring (cypress by day, jade at night) in a 48dp target, with a 6dp halo of the body colour at 14% drawn by the plate. It is the plate's centre pin, kept quiet so the prayer name stays the strongest mark. The glyph is in primary: half-filled circle for Otomatis (follows the phone), sun for Terang, moon for Gelap. Each tap moves to the next mode; the choice persists and applies to every tab. On the Quran tab, Otomatis keeps its own night window (Isya to Subuh, or a dark phone). The header gives the hub row 1 to itself: Hijri and Gregorian dates on the left with the location link under them.
 - **Sun or moon:** a 12dp body-colour disc with halos of 11dp (18%) and 17dp (8%). Its x follows the sun's position for the prayer (low left at Subuh, high centre at Dzuhur, low right at Maghrib, the moon at Isya). It travels in the free band between the header and the name (160dp at the horizon, 128dp at the zenith), so it never shows through text.
 - **Motion:** colours and the sun move over 800ms when the next prayer changes.
 - Drawn after the scroll modifier, so it scrolls with the content.
@@ -311,9 +312,12 @@ Calm and devotional: soft corners, generous padding, quiet outlines. The instrum
 No card. The block sits straight on the screen background, so the prayer name is the one dominant mark on the screen.
 - **Name:** the next prayer ("Isya") in Display, Ink Charcoal / Crisp White. 24dp of air above it (the 16dp block gap plus 8dp).
 - **Sub-line:** 10dp below the name, one line in 15sp medium Stone: "pukul **19:12** WIB · **00:24:30** lagi". The time is bold Deep Cypress; the countdown is semibold ink; both tabular. The zone label comes from the device offset (WIB, WITA or WIT; GMT±h elsewhere). Name and sub-line are one merged group for screen readers.
-- **Status row:** 16dp below the sub-line, under a hairline at 60%, a 48dp row. Left, the reminder status; right, "Kiblat {n}°", whose screen-reader label names the 16-point compass direction.
-  - When the adzan is set up: a cypress check icon and "Pengingat aktif · 5 waktu" (or "n dari 5", or "Semua pengingat nonaktif") in Stone.
-  - When notifications are off: a gold warning icon, "Notifikasi adzan belum aktif" in ink, and a gold bold "Perbaiki". The whole row is a 48dp button that opens Setelan.
+- **Status row:** 16dp below the sub-line, under a hairline at 60%, a 48dp row. Left, the reminder status; right, "Kiblat {n}°", a 48dp button that opens Kiblat, whose screen-reader label names the 16-point compass direction.
+  - The status answers "will my next adzan sound?", most urgent first, and never shows a check while the next reminder is off:
+  - Notifications off: a gold warning icon, "Notifikasi adzan belum aktif" in ink, and a bold Brass Ink "Perbaiki". The whole row is a 48dp button that opens Setelan.
+  - Exact alarms off (only possible on Android 12/12L; `USE_EXACT_ALARM` keeps them on from 13): the same form, "Adzan bisa terlambat".
+  - Next prayer muted: a Stone bell-off icon and "Pengingat {waktu} nonaktif" in Stone.
+  - Otherwise: a cypress check and "Pengingat aktif · 5 waktu" (or "n dari 5 waktu"), or a bell-off and "Semua pengingat nonaktif".
   - On first run, while the location is still the default, the row shows the neutral count, so the setup card is the only call to action.
 
 ### Prayer Rows
@@ -322,6 +326,12 @@ The 48dp trailing control sets the row height, giving a compact row of 52dp (60d
 - **Next:** 1.5dp Deep Cypress outline, a 2dp lift, 6dp vertical padding, bold name, the "BERIKUTNYA" badge (Cypress Mist via `secondaryContainer`), and the time in cypress.
 - **Passed:** background fill, hairline at 50%, text at 62% opacity, which keeps it at or above 4.5:1 on Warm Limestone.
 - **Trailing control:** a 48dp icon button that cycles the reminder mode (adzan, vibrate, off). Its icon is gold on upcoming rows, cypress on the next row, and muted at 60% when off. Its screen-reader label states the current mode: "Pengingat Isya: Getar Saja. Ketuk untuk mengganti." Every change shows a snackbar with "Urungkan" (undo). Terbit shows a static sun icon in a 48dp box instead, since it isn't a prayer and has no reminder.
+
+### Friday Card
+From Thursday's Maghrib to Friday's, a 16dp section card sits between the next prayer and the schedule: a 38dp Cypress Mist icon tile with a book, "Sunnah Hari Jumat" (11sp bold, Brass Ink) over "Baca Surah Al-Kahfi (QS. 18)" (14sp semibold), and a cypress arrow. The whole card opens Surah Al-Kahfi. It stays for the whole window. On shorter phones it pushes the last row below the fold, so the schedule scrolls on those days.
+
+### Reminder Hint
+The schedule has no header. While every reminder is still at its default, "Ketuk lonceng untuk berganti: adzan, getar, mati." in 12sp Stone sits above the rows. After the first change the undo snackbar has taught it, so it goes.
 
 ### Buttons
 - **Shape:** 10dp radius, 10dp vertical padding, Label type with a 16dp leading icon.
@@ -392,7 +402,7 @@ The app opens straight onto Jadwal's own ground, never a white window.
 - **Splash** (`Theme.MyPrayer.Starting`, androidx core-splashscreen): the page background (Warm Limestone / Obsidian Night) with the theme hub as the mark: a 56dp primary disc, an 8dp halo of the body colour at 14% and a 1dp ring at 30% (`drawable/splash_mark.xml`, colours in `values/` and `values-night/splash.xml`). On Android 12+ the app sets `UiModeManager.setApplicationNightMode` from the theme hub, so the splash follows Terang/Gelap rather than the phone; the manifest handles `uiMode`, so this never recreates the activity. The window behind Compose has the same background.
 - **Hold:** the splash stays until DataStore has the theme and the first schedule exists (capped at 1.5s), so neither a blank frame nor the spinner shows.
 - **Exit:** the splash fades in 160ms with a strong ease-out (0.23, 1, 0.32, 1), so the schedule shows from the first frames; the mark shrinks to 80% as the splash's fade carries it.
-- **Cascade:** underneath, Jadwal settles in from the top: header, location card (first run), next prayer, schedule label, then the six rows. Each block fades in over 220ms (emphasized decelerate) at its own start (0, 30, 50, 70, 80, 88, 94, 98, 100, 100ms; `ui/theme/LaunchEntrance.kt`). The gaps shrink down the page so it reads as one wave. The next prayer, the lead, rises 12dp; everything else rises 6dp. The sky, plate and navigation bar arrive with the splash fade. About 320ms in all.
+- **Cascade:** underneath, Jadwal settles in from the top: header, location card (first run), next prayer, the Friday card (Thursday night and Friday), the reminder hint, then the six rows. Each block fades in over 220ms (emphasized decelerate) at its own start (0, 30, 50, 70, 80, 88, 94, 98, 100, 100ms; `ui/theme/LaunchEntrance.kt`). The gaps shrink down the page so it reads as one wave. The next prayer, the lead, rises 12dp; everything else rises 6dp. The sky, plate and navigation bar arrive with the splash fade. About 320ms in all.
 - Plays only on a fresh launch (no saved state); a rotation or restored process opens settled. "Remove animations" makes it a cut.
 
 ### Quran Reader (signature)

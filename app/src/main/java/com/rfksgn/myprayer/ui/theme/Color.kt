@@ -11,6 +11,7 @@ val CypressPrimary = Color(0xFF0F4C3A)       // Hijau zamrud tua
 val CypressContainer = Color(0xFF14382E)     // Hero card dark green
 val CypressMist = Color(0xFFDDE6E3)          // Cypress ±13% di atas putih (chip, indikator, tonal)
 val BrassGold = Color(0xFFC59B27)            // Emas kalem (aksen Kiblat & waktu aktif)
+val BrassInk = Color(0xFF75580C)             // Brass for text by day: ≥4.6:1 on every sky (BrassGold is ~2:1)
 val InkCharcoal = Color(0xFF181816)          // Teks utama
 val StoneMuted = Color(0xFF737067)           // Teks sekunder
 

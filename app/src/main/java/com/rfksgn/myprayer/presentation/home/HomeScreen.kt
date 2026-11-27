@@ -6,6 +6,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,6 +25,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -68,17 +70,18 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.rfksgn.myprayer.core.permission.AdzanReadiness
 import com.rfksgn.myprayer.core.permission.rememberAdzanReadiness
 import com.rfksgn.myprayer.data.local.ThemeMode
 import com.rfksgn.myprayer.domain.model.ReminderMode
 import com.rfksgn.myprayer.ui.theme.SkyStone
+import com.rfksgn.myprayer.ui.theme.badge
+import com.rfksgn.myprayer.ui.theme.brassText
+import com.rfksgn.myprayer.ui.theme.overline
 import com.rfksgn.myprayer.ui.theme.launchEntrance
 import com.rfksgn.myprayer.ui.theme.prayerSky
 import com.rfksgn.myprayer.ui.theme.readout
@@ -99,6 +102,7 @@ fun HomeScreen(
     onRefreshLocationClick: () -> Unit,
     onToggleAlarm: (String) -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenQibla: () -> Unit,
     themeMode: ThemeMode,
     onCycleThemeMode: () -> Unit,
     onOpenAlKahf: () -> Unit,
@@ -144,7 +148,13 @@ fun HomeScreen(
     val nextPrayerTargetName = nextPrayerItem?.name ?: schedule.nextPrayerName
     val nextPrayerTargetTime = nextPrayerItem?.time ?: ""
 
-    val activeReminders = uiState.reminderModes.count { it.value != ReminderMode.SILENT }
+    val reminderKeys = prayers.filterNot { it.isSunnah }.map { it.keyName }
+    val modeOf = { key: String -> uiState.reminderModes[key] ?: ReminderMode.ADZAN }
+    val activeReminders = reminderKeys.count { modeOf(it) != ReminderMode.SILENT }
+    // Terbit has no reminder, so it has no mode to report
+    val nextMode = nextPrayerItem?.takeUnless { it.isSunnah }?.let { modeOf(it.keyName) }
+    // The hint teaches the reminder icons until the first change; after that the undo snackbar has taught it
+    val showModeHint = reminderKeys.all { modeOf(it) == ReminderMode.ADZAN }
 
     // Secondary text sits on the tinted sky; deepen Stone in light mode so it keeps ≥4.5:1
     val baseScheme = MaterialTheme.colorScheme
@@ -184,12 +194,8 @@ fun HomeScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
                             text = hijriDateString.uppercase(),
-                            style = TextStyle(
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.4.sp,
-                                color = MaterialTheme.colorScheme.secondary
-                            )
+                            style = MaterialTheme.typography.overline,
+                            color = MaterialTheme.colorScheme.brassText
                         )
                         Text(
                             text = schedule.dateFormatted,
@@ -229,7 +235,9 @@ fun HomeScreen(
                     // Location comes first on first run; permissions are surfaced once it is set
                     readiness = if (uiState.isDefaultLocation) null else readiness,
                     activeReminders = activeReminders,
-                    onFixReadiness = onOpenSettings
+                    nextMode = nextMode,
+                    onFixReadiness = onOpenSettings,
+                    onOpenQibla = onOpenQibla
                 )
             }
           }
@@ -241,35 +249,20 @@ fun HomeScreen(
                 }
             }
 
-            // 3. SCHEDULE
+            // 3. SCHEDULE. No header; the reminder hint shows above the rows until the first change.
             val scheduleOffset = if (showAlKahfBanner) 4 else 3
             Column(
                 modifier = Modifier.padding(top = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .launchEntrance(scheduleOffset)
-                        .padding(horizontal = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                if (showModeHint) {
                     Text(
-                        text = "JADWAL WAKTU SHOLAT",
-                        style = TextStyle(
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.2.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = "Ketuk ikon untuk ubah mode",
-                        style = MaterialTheme.typography.labelSmall,
+                        text = "Ketuk lonceng untuk berganti: adzan, getar, mati.",
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.End,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .launchEntrance(scheduleOffset)
+                            .padding(horizontal = 4.dp)
                     )
                 }
 
@@ -298,7 +291,10 @@ fun HomeScreen(
     }
 }
 
-/** A 40dp cypress disc in a 48dp target; each tap moves Otomatis, Terang, Gelap, then back. */
+/**
+ * The plate's centre pin: a 40dp paper disc with a 1dp primary ring and a primary glyph, in a 48dp target.
+ * Quiet on purpose, so the prayer name stays the strongest mark. Each tap moves Otomatis, Terang, Gelap, then back.
+ */
 @Composable
 private fun ThemeHub(mode: ThemeMode, onClick: () -> Unit) {
     val label = when (mode) {
@@ -306,8 +302,8 @@ private fun ThemeHub(mode: ThemeMode, onClick: () -> Unit) {
         ThemeMode.LIGHT -> "Terang"
         ThemeMode.DARK -> "Gelap"
     }
-    val disc by animateColorAsState(MaterialTheme.colorScheme.primary, tween(300), label = "hubDisc")
-    val glyph by animateColorAsState(MaterialTheme.colorScheme.background, tween(300), label = "hubGlyph")
+    val disc by animateColorAsState(MaterialTheme.colorScheme.surface, tween(300), label = "hubDisc")
+    val glyph by animateColorAsState(MaterialTheme.colorScheme.primary, tween(300), label = "hubGlyph")
     Box(
         modifier = Modifier
             .size(48.dp)
@@ -317,7 +313,10 @@ private fun ThemeHub(mode: ThemeMode, onClick: () -> Unit) {
         contentAlignment = Alignment.Center
     ) {
         Box(
-            modifier = Modifier.size(40.dp).background(disc, CircleShape),
+            modifier = Modifier
+                .size(40.dp)
+                .background(disc, CircleShape)
+                .border(1.dp, glyph, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Crossfade(targetState = mode, animationSpec = tween(200), label = "hubIcon") { m ->
@@ -469,7 +468,9 @@ private fun NextPrayerBlock(
     qiblaDirection: Double,
     readiness: AdzanReadiness?,
     activeReminders: Int,
-    onFixReadiness: () -> Unit
+    nextMode: ReminderMode?,
+    onFixReadiness: () -> Unit,
+    onOpenQibla: () -> Unit
 ) {
     val zoneLabel = remember { localZoneLabel() }
     val primary = MaterialTheme.colorScheme.primary
@@ -520,6 +521,8 @@ private fun NextPrayerBlock(
             ReminderStatus(
                 readiness = readiness,
                 activeReminders = activeReminders,
+                nextPrayerName = nextPrayerName,
+                nextMode = nextMode,
                 onFix = onFixReadiness,
                 modifier = Modifier.weight(1f)
             )
@@ -530,26 +533,39 @@ private fun NextPrayerBlock(
                 style = MaterialTheme.typography.readout,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
-                modifier = Modifier.semantics {
-                    contentDescription =
-                        "Arah kiblat $degrees derajat, ${compassPointName(qiblaDirection)}"
-                }
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(role = Role.Button, onClickLabel = "Buka Kiblat", onClick = onOpenQibla)
+                    .heightIn(min = 48.dp)
+                    .wrapContentHeight()
+                    .padding(start = 4.dp)
+                    .semantics {
+                        contentDescription =
+                            "Arah kiblat $degrees derajat, ${compassPointName(qiblaDirection)}"
+                    }
             )
         }
     }
 }
 
-/** The adzan's readiness in one line; tappable when something needs fixing. */
+/**
+ * Answers "will my next adzan sound?" in one line, most urgent first: notifications off, exact alarms off
+ * (tappable, to Setelan), then the next prayer muted, then the day's count. It never shows a check while
+ * the next reminder is off.
+ */
 @Composable
 private fun ReminderStatus(
     readiness: AdzanReadiness?,
     activeReminders: Int,
+    nextPrayerName: String,
+    nextMode: ReminderMode?,
     onFix: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val problem = when {
         readiness == null -> null
         !readiness.notifications -> "Notifikasi adzan belum aktif"
+        !readiness.exactAlarm -> "Adzan bisa terlambat"
         else -> null
     }
     val textStyle = MaterialTheme.typography.readout
@@ -579,25 +595,28 @@ private fun ReminderStatus(
             Text(
                 text = "Perbaiki",
                 style = textStyle.copy(fontWeight = FontWeight.Bold),
-                color = goldAccent,
+                color = MaterialTheme.colorScheme.brassText,
                 maxLines = 1
             )
         }
     } else {
-        val status = when (activeReminders) {
-            0 -> "Semua pengingat nonaktif"
-            5 -> "Pengingat aktif · 5 waktu"
+        val nextMuted = nextMode == ReminderMode.SILENT && activeReminders > 0
+        val status = when {
+            activeReminders == 0 -> "Semua pengingat nonaktif"
+            nextMuted -> "Pengingat $nextPrayerName nonaktif"
+            activeReminders == 5 -> "Pengingat aktif · 5 waktu"
             else -> "Pengingat aktif · $activeReminders dari 5 waktu"
         }
+        val muted = activeReminders == 0 || nextMuted
         Row(
             modifier = modifier,
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Icon(
-                imageVector = if (activeReminders == 0) Icons.Default.NotificationsOff else Icons.Default.CheckCircle,
+                imageVector = if (muted) Icons.Default.NotificationsOff else Icons.Default.CheckCircle,
                 contentDescription = null,
-                tint = if (activeReminders == 0) MaterialTheme.colorScheme.onSurfaceVariant
+                tint = if (muted) MaterialTheme.colorScheme.onSurfaceVariant
                 else MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(16.dp)
             )
@@ -671,12 +690,9 @@ private fun PrayerTimelineItem(
                         Text(
                             text = "BERIKUTNYA",
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                            style = TextStyle(
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.8.sp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                            style = MaterialTheme.typography.badge,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1
                         )
                     }
                 }
@@ -833,7 +849,7 @@ private fun AlKahfSunnahCard(onClick: () -> Unit) {
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 0.8.sp,
-                        color = MaterialTheme.colorScheme.secondary
+                        color = MaterialTheme.colorScheme.brassText
                     )
                 )
                 Text(

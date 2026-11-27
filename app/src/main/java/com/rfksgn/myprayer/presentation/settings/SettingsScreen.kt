@@ -115,6 +115,7 @@ import com.rfksgn.myprayer.domain.model.PrayerSchedule
 import com.rfksgn.myprayer.data.local.FridayReminderConfig
 import com.rfksgn.myprayer.domain.model.ReminderMode
 import com.rfksgn.myprayer.presentation.quran.EaseOutExpo
+import com.rfksgn.myprayer.ui.theme.brassText
 import com.rfksgn.myprayer.ui.theme.SkyStone
 import com.rfksgn.myprayer.ui.theme.prayerSkyColors
 import kotlin.math.cos
@@ -396,8 +397,7 @@ fun SettingsScreen(
                     onPick = { regularAudioPickerLauncher.launch(arrayOf("audio/*")) },
                     onReset = { onRegularAudioSelected(null, "Default") }
                 )
-            }
-        }
+
                 // 4. PERSIAPAN SHOLAT JUMAT
                 Spacer(Modifier.height(12.dp))
                 Text(
@@ -509,6 +509,8 @@ fun SettingsScreen(
                         )
                     }
                 }
+            }
+        }
     }
 }
 
@@ -642,7 +644,7 @@ private fun ReteDial(
                         fontWeight = if (isNext) FontWeight.Bold else FontWeight.Medium,
                         fontFeatureSettings = "tnum"
                     ),
-                    color = if (isNext) brass else scheme.onSurfaceVariant
+                    color = if (isNext) scheme.brassText else scheme.onSurfaceVariant
                 )
             }
             val mark = dialPoint(angles[i], MarkerRadius)

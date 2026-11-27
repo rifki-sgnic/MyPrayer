@@ -48,6 +48,28 @@ val Typography.subLine: TextStyle
 val Typography.readout: TextStyle
     get() = Readout
 
+/** The one uppercase label a section may carry (Jadwal's Hijri date). Callers uppercase the text. */
+val Typography.overline: TextStyle
+    get() = Overline
+
+/** The "BERIKUTNYA" badge on the next prayer's row: Material's smallest label size, tracked. */
+val Typography.badge: TextStyle
+    get() = Badge
+
+private val Overline = TextStyle(
+    fontFamily = FontFamily.Default,
+    fontWeight = FontWeight.Bold,
+    fontSize = 11.sp,
+    letterSpacing = 1.4.sp
+)
+
+private val Badge = TextStyle(
+    fontFamily = FontFamily.Default,
+    fontWeight = FontWeight.Bold,
+    fontSize = 11.sp,
+    letterSpacing = 0.8.sp
+)
+
 private val SubLine = TextStyle(
     fontFamily = FontFamily.Default,
     fontWeight = FontWeight.Medium,

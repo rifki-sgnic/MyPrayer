@@ -104,6 +104,13 @@ private val QuranNightColorScheme = DarkColorScheme.copy(
 private val QuranDayColorScheme = LightColorScheme.copy(tertiary = CypressPrimary)
 
 /**
+ * Brass for words. Brass Gold reads at about 2:1 on limestone and the skies, so by day text takes Brass Ink;
+ * icons, dots, rings and the plate keep `secondary`. At night Lit Amber already reads, so it is unchanged.
+ */
+val ColorScheme.brassText: Color
+    get() = if (secondary == BrassGold) BrassInk else secondary
+
+/**
  * The Quran tab's palette: Malam Hangat at night, the light scheme by day, whatever the system theme.
  * `tertiary` is the ayah-end medallion and surah-name colour: cypress by day, amber at night.
  */
